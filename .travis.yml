@@ -1,6 +1,8 @@
 language: python
 python:
     - '2.7'
+before_install:
+    - sqlite3 --version
 install:
     - pip install --upgrade pytest
     - pip install dataset
