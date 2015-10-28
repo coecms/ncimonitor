@@ -4,4 +4,4 @@ python:
 install:
     - pip install --upgrade pytest
 script:
-    - PYTHONPATH='' py.test test
+    - PYTHONPATH='' py.test
