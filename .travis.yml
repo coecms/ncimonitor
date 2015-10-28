@@ -8,4 +8,4 @@ env:
   global:
     - PYTHONPATH=$PYTHONPATH:..:.
 script:
-    - py.test
+    - py.test test
