@@ -5,6 +5,6 @@ install:
     - pip install --upgrade pytest
 env:
   global:
-    - PYTHONPATH=''
+    - PYTHONPATH=$PYTHONPATH:..:.
 script:
     - py.test
