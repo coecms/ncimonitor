@@ -11,7 +11,7 @@ import os
 sys.path.append('..')
 sys.path.append('.')
 from UsageDataset import *
-from nci_monitor import *
+# from nci_monitor import *
 from DBcommon import datetoyearquarter
 
 import datetime
