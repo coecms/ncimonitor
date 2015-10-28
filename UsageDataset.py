@@ -36,12 +36,13 @@ class ProjectDataset(object):
         self.dbfile = dbfile
         self.db = connect(dbfile)
 
-    def adduser(self, username):
+    def adduser(self, username, fullname=None):
         if self.db['User'].find_one(username=username) is None:
-            try:
-                fullname = getpwnam(username).pw_gecos
-            except KeyError:
-                fullname = username
+            if fullname is None:
+                try:
+                    fullname = getpwnam(username).pw_gecos
+                except KeyError:
+                    fullname = username
             data = dict(username=username, fullname=fullname)
             self.db['User'].upsert(data, data.keys())
 
@@ -108,7 +109,7 @@ class ProjectDataset(object):
             usage.append(record["totsu"]/1000.)
         return dates, usage
 
-    def getusersu(self, year, quarter, username):
+    def getusersu(self, year, quarter, username, scale=None):
         startdate, enddate = self.getstartend(year, quarter)
         user = self.db['User'].find_one(username=username)
         if user is None:
@@ -118,9 +119,10 @@ class ProjectDataset(object):
         if q is None:
             return None
         dates = []; usage = []
+        if scale is None: scale = 1.
         for record in q:
             dates.append(self.date2date(record["date"]))
-            usage.append(record["totsu"]/1000.)
+            usage.append(record["totsu"]*scale)
         return dates, usage
 
     def getusershort(self, year, quarter, username):
@@ -168,6 +170,18 @@ class ProjectDataset(object):
         for record in q:
             users.append(self.db['User'].find_one(id=record["user"])["username"])
         return users
+
+    def getuser(self, username=None):
+        return self.db['User'].find_one(username=username)
+
+    def getusers(self):
+        qstring = "SELECT username FROM User"
+        q = self.db.query(qstring)
+        for user in q:
+            yield user['username']
+
+    def getqueue(self, system, queue):
+        return self.db['SystemQueue'].find_one(system=system, queue=queue)
 
     def date2date(self, datestring):
         return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()

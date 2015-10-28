@@ -87,15 +87,13 @@ if __name__ == "__main__":
 
     dbfileprefix = '/short/public/aph502/.data/'
 
-    for projid in args.project:
+    for project in args.project:
 
-        dbfile = os.path.join(dbfileprefix,"usage_{}_{}.db".format(projid,year))
-        if os.path.isfile(dbfile):
-            dbfile = 'sqlite:///'+dbfile
-            db = ProjectDataset(projid,dbfile)
-        else:
-            print dbfile
-            print "ERROR! You are not a member of this group: ",projid
+        dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
+        try:
+            db = ProjectDataset(project,dbfile)
+        except:
+            print "ERROR! You are not a member of this group: ",project
             continue
 
         if args.maxusage:
@@ -119,16 +117,21 @@ if __name__ == "__main__":
                 if len(users) <= 0: users = db.getsuusers(year, quarter)
 
                 ucols = zip(users, cycle(iwanthuecolors)) if len(users) > len(iwanthuecolors) else zip(users, iwanthuecolors)
-
+    
+                plotted = False
                 for user, color in ucols:
-                    dates, sus = db.getusersu(year, quarter, user)
+                    dates, sus = db.getusersu(year, quarter, user, scale=0.001)
                     if len(sus) <= 0: continue 
                     if max(sus) > SU_threshold:
+                        plotted = True
                         ax.plot(dates, sus, color=color, linewidth=2, label=user)
 
-                if args.maxusage: ax.plot(ideal_dates, ideal_usage, '--', color='blue')
-
-                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                if plotted:
+                    if args.maxusage: ax.plot(ideal_dates, ideal_usage, '--', color='blue')
+    
+                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                else:
+                    print "No usage data found to plot"
 
             else:
 
@@ -140,7 +143,7 @@ if __name__ == "__main__":
                 dates, sus = db.getprojectsu(year, quarter)
                 ax.plot(dates, sus, color='red')
     
-            ax.set_title("Usage for Project {} on {}".format(projid,system))
+            ax.set_title("Usage for Project {} on {}".format(project,system))
             ax.set_ylabel("KSUs")
 
             # every month
@@ -229,7 +232,7 @@ if __name__ == "__main__":
                 # Put a legend to the right of the current axis
                 ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),handles=patches)
 
-            ax.set_title("Short file usage for Project {} on {}".format(projid,system))
+            ax.set_title("Short file usage for Project {} on {}".format(project,system))
             ax.set_ylabel("Storage Used (TB)")
 
             # every month
