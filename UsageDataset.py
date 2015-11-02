@@ -138,7 +138,7 @@ class ProjectDataset(object):
 
     def getshortdates(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT DISTINCT scandate FROM ShortUsage WHERE scandate between '{}' AND '{}' GROUP BY scandate ORDER BY scandate".format(startdate,enddate)
+        qstring = "SELECT scandate FROM ShortUsage WHERE scandate between '{}' AND '{}' GROUP BY scandate ORDER BY scandate".format(startdate,enddate)
         q = self.db.query(qstring)
         if q is None:
             return None
@@ -149,7 +149,7 @@ class ProjectDataset(object):
 
     def getshortusers(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT DISTINCT user FROM ShortUsage WHERE scandate between '{}' AND '{}' ORDER BY SUM(size) desc".format(startdate,enddate)
+        qstring = "SELECT user FROM ShortUsage WHERE scandate between '{}' AND '{}' GROUP BY user ORDER BY SUM(size) desc".format(startdate,enddate)
         q = self.db.query(qstring)
         if q is None:
             return None
@@ -160,7 +160,7 @@ class ProjectDataset(object):
 
     def getsuusers(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT DISTINCT user FROM UserUsage WHERE date between '{}' AND '{}' ORDER BY SUM(usage_su) desc".format(startdate,enddate)
+        qstring = "SELECT user FROM UserUsage WHERE date between '{}' AND '{}' GROUP BY user ORDER BY SUM(usage_su) desc".format(startdate,enddate)
         q = self.db.query(qstring)
         if q is None:
             return None

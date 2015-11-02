@@ -4,6 +4,7 @@ import pytest
 import sys
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy import arange
 
 import os
 
