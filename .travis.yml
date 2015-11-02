@@ -13,5 +13,5 @@ env:
 script:
     - py.test test
 after_success:
-    - coverage run --source . -m py.test
+    - coverage run --source=UsageDataset.py,test/test_UsageDataset.py -m py.test
     - codecov
