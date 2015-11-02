@@ -51,6 +51,8 @@ if __name__ == "__main__":
     parser.add_argument("--short", help="Show short usage (default true)", action='store_true')
     parser.add_argument("--byuser", help="Show usage by user", action='store_true')
     parser.add_argument("--maxusage", help="Set the maximum usage (useful for individual users)", type=float)
+    parser.add_argument("--pdf", help="Save pdf copies plots", action='store_true')
+    parser.add_argument("--noshow", help="Do not show plots", action='store_true')
 
     parser.add_argument("-d","--delta", help="Show change since beginning of time period", action='store_true')
 
@@ -159,6 +161,10 @@ if __name__ == "__main__":
     
             fig1.autofmt_xdate()
 
+            if args.pdf:
+                outfile = "nci_usage_{}_{}.{}.pdf".format(project,year,quarter)
+                fig1.savefig(outfile)
+
         if args.short:
 
             fig2 = plt.figure()
@@ -248,4 +254,8 @@ if __name__ == "__main__":
     
             fig2.autofmt_xdate()
 
-    plt.show()
+            if args.pdf:
+                outfile = "nci_short_{}_{}.{}.pdf".format(project,year,quarter)
+                fig1.savefig(outfile)
+
+    if not args.noshow: plt.show()
