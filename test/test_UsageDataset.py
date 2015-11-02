@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
+
 import pytest
 import sys
 
@@ -23,6 +25,7 @@ def silentrm(filename):
     try:
         os.remove(filename)
     except OSError:
+        print("Error when trying to remove file: {}".format(filename))
         pass
 
 @pytest.fixture(scope='session')
@@ -102,13 +105,6 @@ def test_addgrant(db):
     grant = 5000000
     db.addgrant(year,quarter,grant)
     assert( db.getgrant(year, quarter) == grant )
-
-def test_systemqueue(db):
-    system = 'deepblue'
-    queue = 'normal'
-    weight = 5.
-    db.addsystemqueue(system,queue,weight)
-    assert( db.getqueue(system, queue)['id'] == 1 )
 
 def test_systemqueue(db):
     system = 'deepblue'
