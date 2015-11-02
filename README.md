@@ -2,6 +2,8 @@
 Extended usage information for the NCI system raijin.
 
 [![Build Status](https://travis-ci.org/coecms/ncimonitor.svg?branch=master)](https://travis-ci.org/coecms/ncimonitor)
+[![codecov.io](https://codecov.io/github/coecms/ncimonitor/coverage.svg?branch=master)](https://codecov.io/github/coecms/ncimonitor?branch=master)
+[![Code Health](https://landscape.io/github/coecms/ncimonitor/master/landscape.svg?style=flat)](https://landscape.io/github/coecms/ncimonitor/master)
 
 To use:
 
