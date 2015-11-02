@@ -256,6 +256,6 @@ if __name__ == "__main__":
 
             if args.pdf:
                 outfile = "nci_short_{}_{}.{}.pdf".format(project,year,quarter)
-                fig1.savefig(outfile)
+                fig2.savefig(outfile)
 
     if not args.noshow: plt.show()
