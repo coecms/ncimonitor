@@ -3,6 +3,7 @@ python:
     - '2.7'
 before_install:
     - sqlite3 --version
+    - pip install codecov
 install:
     - pip install --upgrade pytest
     - pip install dataset
@@ -11,3 +12,5 @@ env:
     - PYTHONPATH=$PYTHONPATH:..:.
 script:
     - py.test test
+after_success:
+    - codecov
