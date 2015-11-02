@@ -32,7 +32,7 @@ def silentrm(filename):
 def db():
     project = 'xx00'
     dbfile = "usage_{}.db".format(project)
-    print dbfile
+    print(dbfile)
     silentrm(dbfile)
     dbfile = "sqlite:///"+dbfile
     return ProjectDataset(project,dbfile)
@@ -65,9 +65,6 @@ def test_adduser(db):
     record = db.getuser(user)
     assert( record['username'] == user )
     assert( record['fullname'] == user )
-
-    # for user in db.getusers():
-    #     print user
 
 def test_addquarter(db):
     year = 1984; month = 7; day = 1 
@@ -121,7 +118,7 @@ def test_adduserusage(db):
     while True:
         for user in db.getusers():
             if user == "xxx1984": continue
-            # print date, user, usecpu, usewall, usesu
+            # print(date, user, usecpu, usewall, usesu)
             db.adduserusage(date,user,usecpu,usewall,usesu)
         date = date + datetime.timedelta(days=1)
         if date >= enddate: break
