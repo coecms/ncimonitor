@@ -1,6 +1,8 @@
 # ncimonitor
 Extended usage information for the NCI system raijin.
 
+[![Build Status](https://travis-ci.org/coecms/ncimonitor.svg?branch=master)](https://travis-ci.org/coecms/ncimonitor)
+
 To use:
 
 ```bash
