@@ -13,5 +13,5 @@ env:
 script:
     - py.test test
 after_success:
-    - coverage run -m py.test
-    - coverage report
+    - coverage run --source . -m py.test
+    - codecov
