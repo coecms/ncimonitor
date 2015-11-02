@@ -25,7 +25,6 @@ def silentrm(filename):
     try:
         os.remove(filename)
     except OSError:
-        print("Error when trying to remove file: {}".format(filename))
         pass
 
 @pytest.fixture(scope='session')
@@ -36,6 +35,11 @@ def db():
     silentrm(dbfile)
     dbfile = "sqlite:///"+dbfile
     return ProjectDataset(project,dbfile)
+
+def test_silentrm():
+    # Call it twice in case it it existed first time
+    silentrm('bogus_very_unlikely_to_exist_file')
+    silentrm('bogus_very_unlikely_to_exist_file')
 
 def test_adduser(db):
     user = 'wxs1984'; fullname = 'Winston Smith'
