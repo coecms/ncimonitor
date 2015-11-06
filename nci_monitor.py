@@ -7,6 +7,7 @@ import argparse
 # import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.dates import MONDAY, DayLocator, WeekdayLocator, MonthLocator, DateFormatter, drange
+from matplotlib.dates import AutoDateFormatter, AutoDateLocator
 import matplotlib.patches as mpatches
 import numpy as np
 from numpy import arange
@@ -148,17 +149,13 @@ if __name__ == "__main__":
             ax.set_title("Usage for Project {} on {}".format(project,system))
             ax.set_ylabel("KSUs")
 
-            # every month
-            months = MonthLocator(range(datetime.date.fromordinal(int(ideal_dates[0])).month,datetime.date.fromordinal(int(ideal_dates[-1])).month+1), bymonthday=15, interval=1)
-            monthsFmt = DateFormatter("%b '%y")
-    
-            # every monday
-            mondays = WeekdayLocator(MONDAY)
-    
-            ax.xaxis.set_major_locator( months )
+            monthsFmt = DateFormatter("%-d '%b")
             ax.xaxis.set_major_formatter(monthsFmt)
-            ax.xaxis.set_minor_locator(mondays)
-    
+
+            xtick_locator = AutoDateLocator()
+            xtick_formatter = AutoDateFormatter(xtick_locator)
+            ax.xaxis.set_major_locator(xtick_locator)
+
             fig1.autofmt_xdate()
 
             if args.pdf:
@@ -241,17 +238,13 @@ if __name__ == "__main__":
             ax.set_title("Short file usage for Project {} on {}".format(project,system))
             ax.set_ylabel("Storage Used (TB)")
 
-            # every month
-            months = MonthLocator(range(datetime.date.fromordinal(int(ideal_dates[0])).month,datetime.date.fromordinal(int(ideal_dates[-1])).month+1), bymonthday=15, interval=1)
-            monthsFmt = DateFormatter("%b '%y")
-    
-            # every monday
-            mondays = WeekdayLocator(MONDAY)
-    
-            ax.xaxis.set_major_locator( months )
+            monthsFmt = DateFormatter("%-d '%b")
             ax.xaxis.set_major_formatter(monthsFmt)
-            ax.xaxis.set_minor_locator(mondays)
-    
+
+            xtick_locator = AutoDateLocator()
+            xtick_formatter = AutoDateFormatter(xtick_locator)
+            ax.xaxis.set_major_locator(xtick_locator)
+
             fig2.autofmt_xdate()
 
             if args.pdf:
