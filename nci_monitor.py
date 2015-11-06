@@ -146,7 +146,7 @@ if __name__ == "__main__":
                 dates, sus = db.getprojectsu(year, quarter)
                 ax.plot(dates, sus, color='red')
     
-            ax.set_title("Usage for Project {} on {}".format(project,system))
+            ax.set_title("Usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
             ax.set_ylabel("KSUs")
 
             monthsFmt = DateFormatter("%-d '%b")
@@ -235,7 +235,7 @@ if __name__ == "__main__":
                 # Put a legend to the right of the current axis
                 ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),handles=patches)
 
-            ax.set_title("Short file usage for Project {} on {}".format(project,system))
+            ax.set_title("Short file usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
             ax.set_ylabel("Storage Used (TB)")
 
             monthsFmt = DateFormatter("%-d '%b")
