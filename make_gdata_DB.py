@@ -18,6 +18,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import print_function
+
 import argparse
 import pwd
 import datetime
@@ -69,7 +71,7 @@ def parse_short_file(filename):
                     except:
                         break
                     db.adduser(user)
-                    if (verbose) print 'Adding short ',folder,user,size,inodes,scandate
+                    if (verbose): print('Adding gdata ',folder,user,size,inodes,scandate)
                     db.addgdatausage(folder,user,parse_size(size.upper()),inodes,scandate)
             except:
                 break
@@ -79,11 +81,11 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse short file dumps")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
-    parser.add_argument("inputs", help="dumpfiles", nargs='+')
+    parser.add_argument("inputs", help="dumpfiles", nargs='*')
     args = parser.parse_args()
 
     for f in args.inputs:
-        if verbose: print f
+        if verbose: print(f)
         try:
             parse_short_file(f);
         except:

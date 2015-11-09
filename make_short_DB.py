@@ -79,7 +79,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Parse short file dumps")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
-    parser.add_argument("inputs", help="dumpfiles", nargs='+')
+    parser.add_argument("inputs", help="dumpfiles", nargs='*')
     args = parser.parse_args()
 
     for f in args.inputs:

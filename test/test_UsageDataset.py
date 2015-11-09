@@ -114,6 +114,16 @@ def test_systemqueue(db):
     db.addsystemqueue(system,queue,weight)
     assert( db.getqueue(system, queue)['id'] == 1 )
 
+def test_addsystemstorage(db):
+    year = 1984;
+    system = 'deepblue'
+    storagepoints = ['data', 'short', 'tape']
+    grants = [5e6, 5e5, 5e9]
+    igrants = [1e7, 1e5, 1e10]
+    for quarter in ['q3,''q4']:
+        for point, grant, igrant in zip(storagepoints, grants, igrants):
+            db.addsystemstorage(system, point, year, quarter, grant, igrant)
+
 def test_adduserusage(db):
     year = 1984; quarter = 'q3'
     startdate, enddate = db.getstartend(year, quarter, asdate=True)

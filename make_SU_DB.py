@@ -45,10 +45,11 @@ def parse_SU_file(filename):
             if line.startswith("%%%%%%%%%%%%%%%%%"):
                 # Grab date string
                 date = datetime.datetime.strptime(f.next().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y").date()
-            elif line.startswith("Usage Report:"):
+            elif line.startswith("Usage Report:") and "Compute" in line:
                 words = line.split()
                 project = words[2].split('=')[1]
                 year, quarter = words[4].split('=')[1].split('.')
+                print year, quarter
                 startdate, enddate = words[5].split('-')
                 startdate = datetime.datetime.strptime(startdate.strip('('),"%d/%m/%Y").date()
                 enddate = datetime.datetime.strptime(enddate.strip(')'),"%d/%m/%Y").date()
@@ -93,14 +94,15 @@ def parse_SU_file(filename):
                 except:
                     instorage = False
                     continue
-                db.addsystemstorage(systemname,storagept,date,parse_size(grant.upper()),parse_inodenum(igrant))
+                print(year, quarter)
+                db.addsystemstorage(systemname,storagept,year,quarter,parse_size(grant.upper()),parse_inodenum(igrant))
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Parse usage dump files")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
-    parser.add_argument("inputs", help="dumpfiles", nargs='+')
+    parser.add_argument("inputs", help="dumpfiles", nargs='*')
     args = parser.parse_args()
 
     verbose = args.verbose

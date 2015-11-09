@@ -73,12 +73,6 @@ if __name__ == "__main__":
         args.short = True
             
     plot_by_user = args.byuser
-
-    users = []
-    if args.users is not None:
-        plot_by_user = True
-        users.extend(args.users)
-
     if args.period is not None:
         year, quarter = args.period.split(".")
     else:
@@ -91,6 +85,11 @@ if __name__ == "__main__":
     dbfileprefix = '/short/public/aph502/.data/'
 
     for project in args.project:
+
+        users = []
+        if args.users is not None:
+            plot_by_user = True
+            users.extend(args.users)
 
         dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
         try:

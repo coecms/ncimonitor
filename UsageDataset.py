@@ -49,35 +49,35 @@ class ProjectDataset(object):
         return self.db['Quarter'].upsert(data, ['year', 'quarter'])
 
     def addgrant(self, year, quarter, totalgrant):
-        data = dict(year=year, quarter=quarter, total_grant=totalgrant)
+        data = dict(year=year, quarter=quarter, total_grant=float(totalgrant))
         return self.db['Grant'].upsert(data, ['year', 'quarter'])
 
     def adduserusage(self, date, username, usecpu, usewall, usesu):
         user = self.db['User'].find_one(username=username)
-        data = dict(date=date, user=user['id'], usage_cpu=usecpu, usage_wall=usewall, usage_su=usesu)
+        data = dict(date=date, user=user['id'], usage_cpu=float(usecpu), usage_wall=float(usewall), usage_su=float(usesu))
         return self.db['UserUsage'].upsert(data, ['date','user'])
 
     def addsystemqueue(self, systemname, queuename, weight):
-        data = dict(system=systemname,queue=queuename,chargeweight=weight)
+        data = dict(system=systemname,queue=queuename,chargeweight=float(weight))
         return self.db['SystemQueue'].upsert(data, ['system', 'queue'])
 
-    def addsystemstorage(self, systemname, storagepoint, date, grant, igrant):
-        data = dict(system=systemname,storagepoint=storagepoint,date=date,grant=grant,igrant=igrant)
-        return self.db['SystemStorage'].upsert(data, ['system', 'storagepoint', 'date'])
+    def addsystemstorage(self, systemname, storagepoint, year, quarter, grant, igrant):
+        data = dict(system=systemname,storagepoint=storagepoint,year=year,quarter=quarter,grant=float(grant),igrant=float(igrant))
+        return self.db['SystemStorage'].upsert(data, ['system', 'storagepoint', 'year', 'quarter'])
 
     def addprojectusage(self, date, systemname, queuename, cputime, walltime, su):
         systemqueue = self.db['SystemQueue'].find_one(system=systemname,queue=queuename)
-        data = dict(date=date,systemqueue=systemqueue['id'],usage_cpu=cputime,usage_wall=walltime,usage_su=su)
+        data = dict(date=date,systemqueue=systemqueue['id'],usage_cpu=float(cputime),usage_wall=float(walltime),usage_su=float(su))
         return self.db['ProjectUsage'].upsert(data, ['date', 'systemqueue'])
 
     def addshortusage(self, folder, username, size, inodes, scandate):
         user = self.db['User'].find_one(username=username)
-        data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=inodes, size=size)
+        data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
         return self.db['ShortUsage'].upsert(data, ['scandate', 'folder', 'user'])
 
     def addgdatausage(self, folder, username, size, inodes, scandate):
         user = self.db['User'].find_one(username=username)
-        data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=inodes, size=size)
+        data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
         return self.db['GdataUsage'].upsert(data, ['scandate', 'folder', 'user'])
 
     def getstartend(self, year, quarter, asdate=False):
@@ -160,7 +160,7 @@ class ProjectDataset(object):
 
     def getsuusers(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT user FROM UserUsage WHERE date between '{}' AND '{}' GROUP BY user ORDER BY SUM(usage_su) desc".format(startdate,enddate)
+        qstring = "SELECT user, MAX(usage_su) as maxsu FROM UserUsage WHERE date between '{}' AND '{}' GROUP BY user ORDER BY maxsu desc".format(startdate,enddate)
         q = self.db.query(qstring)
         if q is None:
             return None
