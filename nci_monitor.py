@@ -191,14 +191,10 @@ if __name__ == "__main__":
                 else:
                     # Stackplot requires data to have values at the same positions
                     # so use pandas to fill missing values
-                    # Make usage into differences
-                    usage[1:] = usage[1:]-usage[:-1]
                     # Make a pandas series
                     usage = pd.Series(usage, index=datadates)
                     # Reindex, and put zeroes in missing locations
                     usage = usage.reindex(dates, fill_value=0.)
-                    # Convert back to absolute values
-                    usage = usage.cumsum()
                 usagebyuser[user] = usage
                     
             # Sort by the max usage
