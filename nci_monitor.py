@@ -186,15 +186,13 @@ if __name__ == "__main__":
             for user in users:
                 datadates, usage = db.getusershort(year, quarter, user)
                 usage = np.array(usage)/scale
+                # Use pandas to fill missing values
+                # Make a pandas series
+                usage = pd.Series(usage, index=datadates)
+                # Reindex, and put zeroes in missing locations
+                usage = usage.reindex(dates, fill_value=0.)
                 if (args.delta):
                     usage = usage - usage[0]
-                else:
-                    # Stackplot requires data to have values at the same positions
-                    # so use pandas to fill missing values
-                    # Make a pandas series
-                    usage = pd.Series(usage, index=datadates)
-                    # Reindex, and put zeroes in missing locations
-                    usage = usage.reindex(dates, fill_value=0.)
                 usagebyuser[user] = usage
                     
             # Sort by the max usage
