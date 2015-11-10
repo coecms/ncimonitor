@@ -151,13 +151,14 @@ def test_addgdatausage(db):
     startdate, enddate = db.getstartend(year, quarter, asdate=True)
     date = startdate
     size = 0.; inodes = 0.
+    storagept = 'array1'
     while True:
         for user in db.getusers():
             if user == "xxx1984": continue
             folder = 'increasing'
-            db.addgdatausage(folder, user, size, inodes, date)
+            db.addgdatausage(storagept, folder, user, size, inodes, date)
             folder = 'constant'
-            db.addgdatausage(folder, user, 1000000., 15, date)
+            db.addgdatausage(storagept, folder, user, 1000000., 15, date)
         date = date + datetime.timedelta(days=1)
         if date >= enddate: break
         size += 10000.; inodes += 100.
