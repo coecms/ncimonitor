@@ -36,7 +36,7 @@ optional arguments:
   --short               Show short usage (default true)
   --byuser              Show usage by user
   --maxusage MAXUSAGE   Set the maximum usage (useful for individual users)
-  --pdf                 Save pdf copies plots
+  --pdf                 Save pdf copies of plots
   --noshow              Do not show plots
   -d, --delta           Show change since beginning of time period
 ```

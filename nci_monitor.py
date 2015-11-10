@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--short", help="Show short usage (default true)", action='store_true')
     parser.add_argument("--byuser", help="Show usage by user", action='store_true')
     parser.add_argument("--maxusage", help="Set the maximum usage (useful for individual users)", type=float)
-    parser.add_argument("--pdf", help="Save pdf copies plots", action='store_true')
+    parser.add_argument("--pdf", help="Save pdf copies of plots", action='store_true')
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
 
     parser.add_argument("-d","--delta", help="Show change since beginning of time period", action='store_true')
