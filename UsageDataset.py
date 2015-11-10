@@ -75,10 +75,10 @@ class ProjectDataset(object):
         data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
         return self.db['ShortUsage'].upsert(data, ['scandate', 'folder', 'user'])
 
-    def addgdatausage(self, folder, username, size, inodes, scandate):
+    def addgdatausage(self, storagepoint, folder, username, size, inodes, scandate):
         user = self.db['User'].find_one(username=username)
-        data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
-        return self.db['GdataUsage'].upsert(data, ['scandate', 'folder', 'user'])
+        data = dict(user=user['id'], storagepoint=storagepoint, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
+        return self.db['GdataUsage'].upsert(data, ['scandate', 'storagepoint', 'folder', 'user'])
 
     def getstartend(self, year, quarter, asdate=False):
         q = self.db['Quarter'].find_one(year=year, quarter=quarter)

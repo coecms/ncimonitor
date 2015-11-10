@@ -24,7 +24,6 @@ import argparse
 import pwd
 import datetime
 import os
-import re
 import shutil
 from UsageDataset import *
 from DBcommon import extract_num_unit, parse_size, mkdir, archive, datetoyearquarter
@@ -33,9 +32,20 @@ databases = {}
 dbfileprefix = '.'
 verbose = False
 
-def parse_short_file(filename):
+def parse_gdata_file(filename):
 
     db = None
+
+    storagept = ''
+    storageptstring = 'gdata'
+
+    start = filename.find('gdata')
+    if start < 0:
+        print('Could not find storage point (e.g gdata1) in filename {}'.format(filename))
+        raise
+    else:
+        storagept = filename[start:start+len(storageptstring)+1]
+        print('Storage Point: {}'.format(storagept))
     
     with open(filename) as f:
 
@@ -72,7 +82,7 @@ def parse_short_file(filename):
                         break
                     db.adduser(user)
                     if (verbose): print('Adding gdata ',folder,user,size,inodes,scandate)
-                    db.addgdatausage(folder,user,parse_size(size.upper()),inodes,scandate)
+                    db.addgdatausage(storagept,folder,user,parse_size(size.upper()),inodes,scandate)
             except:
                 break
 
@@ -84,10 +94,12 @@ if __name__ == "__main__":
     parser.add_argument("inputs", help="dumpfiles", nargs='*')
     args = parser.parse_args()
 
+    verbose = args.verbose
+
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_short_file(f);
+            parse_gdata_file(f);
         except:
             raise
         else:
