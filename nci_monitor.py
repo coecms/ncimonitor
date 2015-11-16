@@ -50,12 +50,14 @@ if __name__ == "__main__":
     parser.add_argument("-S","--system", help="System name", default="raijin")
     parser.add_argument("--usage", help="Show SU usage (default true)", action='store_true')
     parser.add_argument("--short", help="Show short usage (default true)", action='store_true')
-    parser.add_argument("--byuser", help="Show usage by user", action='store_true')
-    parser.add_argument("--maxusage", help="Set the maximum usage (useful for individual users)", type=float)
+    parser.add_argument("--byuser", help="Show SU usage by user", action='store_true')
+    parser.add_argument("--maxusage", help="Set the maximum SU usage (useful for individual users)", type=float)
     parser.add_argument("--pdf", help="Save pdf copies of plots", action='store_true')
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--shorttotal", help="Show the short file limit", action='store_true')
+    group.add_argument("-d","--delta", help="Show change in short usage since beginning of time period", action='store_true')
 
-    parser.add_argument("-d","--delta", help="Show change since beginning of time period", action='store_true')
 
     args = parser.parse_args()
     plot_by_user = False
@@ -144,7 +146,7 @@ if __name__ == "__main__":
 
                 dates, sus = db.getprojectsu(year, quarter)
                 ax.plot(dates, sus, color='red')
-    
+
             ax.set_title("Usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
             ax.set_ylabel("KSUs")
 
@@ -228,6 +230,12 @@ if __name__ == "__main__":
                 # Put a legend to the right of the current axis
                 ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),handles=patches)
 
+            if args.shorttotal:
+                grant, igrant = db.getsystemstorage(system, 'short', year, quarter)
+                grant = grant/scale
+                print grant
+                ax.plot(dates, np.ones_like(dates)*grant, '--', color='blue')
+    
             ax.set_title("Short file usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
             ax.set_ylabel("Storage Used (TB)")
 

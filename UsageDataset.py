@@ -183,3 +183,9 @@ class ProjectDataset(object):
 
     def date2date(self, datestring):
         return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
+
+    def getsystemstorage(self, systemname, storagepoint, year, quarter):
+        q = self.db['SystemStorage'].find_one(system=systemname, storagepoint=storagepoint, year=year, quarter=quarter)
+        if q is None:
+            return None
+        return float(q['grant']),float(q['igrant'])

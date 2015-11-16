@@ -118,12 +118,21 @@ def test_addsystemstorage(db):
     year = 1984;
     system = 'deepblue'
     storagepoints = ['data', 'short', 'tape']
-    grants = [5e6, 5e5, 5e9]
-    igrants = [1e7, 1e5, 1e10]
-    for quarter in ['q3,''q4']:
+    grants = [1e6, 2e5, 3e9]
+    igrants = [1e7, 2e5, 3e10]
+    quarters = ['q3','q4']
+    for quarter in quarters:
         for point, grant, igrant in zip(storagepoints, grants, igrants):
+            print(point, quarter, grant, igrant)
             db.addsystemstorage(system, point, year, quarter, grant, igrant)
 
+    for i, point in enumerate(storagepoints):
+        for quarter in quarters:
+            grant, igrant = db.getsystemstorage(system, point, year, quarter)
+            print(i, quarter, grant, igrant)
+            assert( grant == grants[i] )
+            assert( igrant == igrants[i] )
+        
 def test_adduserusage(db):
     year = 1984; quarter = 'q3'
     startdate, enddate = db.getstartend(year, quarter, asdate=True)
