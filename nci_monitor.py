@@ -62,6 +62,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     plot_by_user = False
 
+    figsize=(12,10)
+
     # If we define either short or usage, disable the other unless it is explicitly specified
     # and default to both being true
     if args.short:
@@ -111,7 +113,7 @@ if __name__ == "__main__":
 
         if args.usage:
     
-            fig1 = plt.figure()
+            fig1 = plt.figure(figsize=figsize)
 
             if (plot_by_user):
 
@@ -133,7 +135,7 @@ if __name__ == "__main__":
                 if plotted:
                     if args.maxusage: ax.plot(ideal_dates, ideal_usage, '--', color='blue')
     
-                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
                 else:
                     print "No usage data found to plot"
 
@@ -165,7 +167,7 @@ if __name__ == "__main__":
 
         if args.short:
 
-            fig2 = plt.figure()
+            fig2 = plt.figure(figsize=figsize)
 
             ax = fig2.add_axes([0.1, 0.15, 0.7, 0.7, ])
             ax.set_xlabel("Date")
@@ -218,7 +220,7 @@ if __name__ == "__main__":
                 # usage_mat from the end backwards. Hack.
                 for i, (user, color) in enumerate(reversed(zip(users,colors))):
                     ax.plot(dates, usage_mat[-1*(i+1)], color=color, linewidth=2, label=user)
-                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
             else:
                 fields = ax.stackplot(dates, usage_mat, colors=colors, baseline='zero')
 
@@ -228,7 +230,7 @@ if __name__ == "__main__":
                     patches.append(mpatches.Patch(color=color,label=user))
 
                 # Put a legend to the right of the current axis
-                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),handles=patches)
+                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),handles=patches, fontsize='small')
 
             if args.shorttotal:
                 grant, igrant = db.getsystemstorage(system, 'short', year, quarter)
