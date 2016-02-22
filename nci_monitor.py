@@ -54,6 +54,7 @@ if __name__ == "__main__":
     parser.add_argument("--maxusage", help="Set the maximum SU usage (useful for individual users)", type=float)
     parser.add_argument("--pdf", help="Save pdf copies of plots", action='store_true')
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
+    parser.add_argument("--overlay", help="Overlay all plots", action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--shorttotal", help="Show the short file limit", action='store_true')
     group.add_argument("-d","--delta", help="Show change in short usage since beginning of time period", action='store_true')
@@ -88,6 +89,8 @@ if __name__ == "__main__":
 
     dbfileprefix = '/short/public/aph502/.data/'
 
+    overlay = False
+
     for project in args.project:
 
         users = []
@@ -113,7 +116,10 @@ if __name__ == "__main__":
 
         if args.usage:
     
-            fig1 = plt.figure(figsize=figsize)
+            if args.overlay and overlay:
+                pass
+            else:
+                fig1 = plt.figure(figsize=figsize)
 
             if (plot_by_user):
 
@@ -167,7 +173,10 @@ if __name__ == "__main__":
 
         if args.short:
 
-            fig2 = plt.figure(figsize=figsize)
+            if args.overlay and overlay:
+                pass
+            else:
+                fig2 = plt.figure(figsize=figsize)
 
             ax = fig2.add_axes([0.1, 0.15, 0.7, 0.7, ])
             ax.set_xlabel("Date")
@@ -237,6 +246,8 @@ if __name__ == "__main__":
                 grant = grant/scale
                 print grant
                 ax.plot(dates, np.ones_like(dates)*grant, '--', color='blue')
+
+                # ax.set_ylim([0,grant-2])
     
             ax.set_title("Short file usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
             ax.set_ylabel("Storage Used (TB)")
@@ -254,4 +265,8 @@ if __name__ == "__main__":
                 outfile = "nci_short_{}_{}.{}.pdf".format(project,year,quarter)
                 fig2.savefig(outfile)
 
+        if args.overlay: overlay = True 
+
     if not args.noshow: plt.show()
+
+
