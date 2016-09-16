@@ -55,6 +55,7 @@ if __name__ == "__main__":
     parser.add_argument("--pdf", help="Save pdf copies of plots", action='store_true')
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
     parser.add_argument("--overlay", help="Overlay all plots", action='store_true')
+    parser.add_argument("--username", help="Show username rather than full name in plot legend", action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--shorttotal", help="Show the short file limit", action='store_true')
     group.add_argument("-d","--delta", help="Show change in short usage since beginning of time period", action='store_true')
@@ -83,6 +84,8 @@ if __name__ == "__main__":
     else:
         date = datetime.datetime.now()
         year, quarter = datetoyearquarter(date)
+
+    use_full_name = not args.username
 
     # Currently not implemented
     SU_threshold = 0.0
@@ -136,7 +139,11 @@ if __name__ == "__main__":
                     if len(sus) <= 0: continue 
                     if max(sus) > SU_threshold:
                         plotted = True
-                        ax.plot(dates, sus, color=color, linewidth=2, label=user)
+                        if use_full_name:
+                            namelabel = db.getuser(user)['fullname']
+                        else:
+                            namelabel = user
+                        ax.plot(dates, sus, color=color, linewidth=2, label=namelabel)
 
                 if plotted:
                     if args.maxusage: ax.plot(ideal_dates, ideal_usage, '--', color='blue')
@@ -194,6 +201,7 @@ if __name__ == "__main__":
                 users = db.getshortusers(year, quarter)
 
             dates = db.getshortdates(year, quarter)
+            labels = {}
 
             for user in users:
                 datadates, usage = db.getusershort(year, quarter, user)
@@ -206,6 +214,10 @@ if __name__ == "__main__":
                 if (args.delta):
                     usage = usage - usage[0]
                 usagebyuser[user] = usage
+                if use_full_name:
+                    labels[user] = db.getuser(user)['fullname']
+                else:
+                    labels[user] = user
                     
             # Sort by the max usage
             usagebyuser = OrderedDict(sorted(usagebyuser.items(), key=lambda t: t[1][-1]))
@@ -228,7 +240,7 @@ if __name__ == "__main__":
                 # the users in descending order. So reverse the enumeration and then index
                 # usage_mat from the end backwards. Hack.
                 for i, (user, color) in enumerate(reversed(zip(users,colors))):
-                    ax.plot(dates, usage_mat[-1*(i+1)], color=color, linewidth=2, label=user)
+                    ax.plot(dates, usage_mat[-1*(i+1)], color=color, linewidth=2, label=labels[user])
                 ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
             else:
                 fields = ax.stackplot(dates, usage_mat, colors=colors, baseline='zero')
@@ -236,7 +248,7 @@ if __name__ == "__main__":
                 # Reversed the order of the patches to match the order in the stacked plot
                 patches = []
                 for user, color in zip(reversed(users),reversed(colors)):
-                    patches.append(mpatches.Patch(color=color,label=user))
+                    patches.append(mpatches.Patch(color=color,label=labels[user]))
 
                 # Put a legend to the right of the current axis
                 ax.legend(loc='center left', bbox_to_anchor=(1, 0.5),handles=patches, fontsize='small')

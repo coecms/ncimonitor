@@ -82,6 +82,8 @@ if __name__ == "__main__":
     parser.add_argument("inputs", help="dumpfiles", nargs='*')
     args = parser.parse_args()
 
+    verbose = args.verbose
+
     for f in args.inputs:
         if verbose: print f
         try:
