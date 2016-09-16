@@ -12,7 +12,7 @@ import matplotlib.patches as mpatches
 import numpy as np
 from numpy import arange
 import random
-from itertools import cycle
+from itertools import cycle, islice
 
 from collections import OrderedDict
 import pandas as pd
@@ -56,6 +56,7 @@ if __name__ == "__main__":
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
     parser.add_argument("--overlay", help="Overlay all plots", action='store_true')
     parser.add_argument("--username", help="Show username rather than full name in plot legend", action='store_true')
+    parser.add_argument("-n","--num", help="Show only top num users where appropriate", type=int, default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--shorttotal", help="Show the short file limit", action='store_true')
     group.add_argument("-d","--delta", help="Show change in short usage since beginning of time period", action='store_true')
@@ -86,6 +87,10 @@ if __name__ == "__main__":
         year, quarter = datetoyearquarter(date)
 
     use_full_name = not args.username
+
+    num_show = args.num
+    if num_show is not None and num_show < 1: 
+        raise ValueError('num must be > 0') 
 
     # Currently not implemented
     SU_threshold = 0.0
@@ -129,7 +134,10 @@ if __name__ == "__main__":
                 ax = fig1.add_axes([0.1, 0.15, 0.7, 0.7 ])
                 ax.set_xlabel("Date")
 
-                if len(users) <= 0: users = db.getsuusers(year, quarter)
+                if len(users) <= 0:
+                    users = db.getsuusers(year, quarter)
+                    if num_show is not None:
+                        users = users[0:min(num_show,len(users))]
 
                 ucols = zip(users, cycle(iwanthuecolors)) if len(users) > len(iwanthuecolors) else zip(users, iwanthuecolors)
     
@@ -219,8 +227,26 @@ if __name__ == "__main__":
                 else:
                     labels[user] = user
                     
-            # Sort by the max usage
+            # Sort by the max usage, even if sorted above.
             usagebyuser = OrderedDict(sorted(usagebyuser.items(), key=lambda t: t[1][-1]))
+
+            # Cannot perform user trimming until this point, so logic
+            # becomes more convoluted
+            if not args.users and num_show is not None:
+
+                if (args.delta):
+                    # Pre-sort by the absolute value of max usage
+                    # and trim to num_show users
+                    usagebyuser = OrderedDict(sorted(usagebyuser.items(), key=lambda t: np.abs(t[1][-1])))
+
+                # Pop off users from the beginning of the list, as it is reverse
+                # sorted by size
+                while len(usagebyuser) > min(num_show,len(users)):
+                    usagebyuser.popitem(last=False)
+
+                if (args.delta):
+                    # Sort by the max usage again. Ugly logic, but necessary it seems
+                    usagebyuser = OrderedDict(sorted(usagebyuser.items(), key=lambda t: t[1][-1]))
 
             users = usagebyuser.keys()
             usage_mat = usagebyuser.values()
