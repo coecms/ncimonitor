@@ -121,6 +121,7 @@ if __name__ == "__main__":
 
         if args.usage:
     
+            plotted = False
             fig1 = plt.figure(figsize=figsize)
 
             if (plot_by_user):
@@ -135,7 +136,6 @@ if __name__ == "__main__":
 
                 ucols = zip(users, cycle(iwanthuecolors)) if len(users) > len(iwanthuecolors) else zip(users, iwanthuecolors)
     
-                plotted = False
                 for user, color in ucols:
                     dates, sus = db.getusersu(year, quarter, user, scale=0.001)
                     if len(sus) <= 0: continue 
@@ -156,29 +156,42 @@ if __name__ == "__main__":
 
             else:
 
-                ax = fig1.add_axes([0.1, 0.15, 0.85, 0.8, ])
-                ax.set_xlabel("Date")
-
-                ax.plot(ideal_dates, ideal_usage, '--', color='blue')
-
                 dates, sus = db.getprojectsu(year, quarter)
-                ax.plot(dates, sus, color='red')
 
-            ax.set_title("Usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
-            ax.set_ylabel("KSUs")
+                if len(sus) > 0:
 
-            monthsFmt = DateFormatter("%-d '%b")
-            ax.xaxis.set_major_formatter(monthsFmt)
+                    ax.plot(ideal_dates, ideal_usage, '--', color='blue')
 
-            xtick_locator = AutoDateLocator()
-            xtick_formatter = AutoDateFormatter(xtick_locator)
-            ax.xaxis.set_major_locator(xtick_locator)
+                    ax = fig1.add_axes([0.1, 0.15, 0.85, 0.8, ])
+                    ax.set_xlabel("Date")
+    
+                    ax.plot(dates, sus, color='red')
 
-            fig1.autofmt_xdate()
+                    plotted = True
 
-            if args.pdf:
-                outfile = "nci_usage_{}_{}.{}.pdf".format(project,year,quarter)
-                fig1.savefig(outfile)
+            if (plotted):
+                ax.set_title("Usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
+                ax.set_ylabel("KSUs")
+    
+                monthsFmt = DateFormatter("%-d '%b")
+                ax.xaxis.set_major_formatter(monthsFmt)
+    
+                xtick_locator = AutoDateLocator()
+                xtick_formatter = AutoDateFormatter(xtick_locator)
+                ax.xaxis.set_major_locator(xtick_locator)
+    
+                fig1.autofmt_xdate()
+    
+                if args.pdf:
+                    outfile = "nci_usage_{}_{}.{}.pdf".format(project,year,quarter)
+                    fig1.savefig(outfile)
+            else:
+                # Left for refernce: these do not work and create an error, so just let an
+                # empty plot be created instead
+                # plt.clf()
+                # plt.close(fig1)
+                pass
+            
 
         if args.short:
 
