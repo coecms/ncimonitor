@@ -49,7 +49,7 @@ class ProjectDataset(object):
         return self.db['Quarter'].upsert(data, ['year', 'quarter'])
 
     def addgrant(self, year, quarter, totalgrant):
-        data = dict(year=year, quarter=quarter, total_grant=parse_size(totalgrant))
+        data = dict(year=year, quarter=quarter, total_grant=totalgrant)
         return self.db['Grant'].upsert(data, ['year', 'quarter'])
 
     def adduserusage(self, date, username, usecpu, usewall, usesu):

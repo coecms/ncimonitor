@@ -60,7 +60,7 @@ def parse_SU_file(filename):
                 db.addquarter(year,quarter,startdate,enddate)
             elif line.startswith("Total Grant:"):
                 total = line.split(":")[1]
-                db.addgrant(year,quarter,total)
+                db.addgrant(year,quarter,parse_size(total.upper()))
             elif line.startswith("System       Queue"):
                 insystem = True
                 f.next()
