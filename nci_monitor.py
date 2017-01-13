@@ -160,10 +160,10 @@ if __name__ == "__main__":
 
                 if len(sus) > 0:
 
-                    ax.plot(ideal_dates, ideal_usage, '--', color='blue')
-
                     ax = fig1.add_axes([0.1, 0.15, 0.85, 0.8, ])
                     ax.set_xlabel("Date")
+
+                    ax.plot(ideal_dates, ideal_usage, '--', color='blue')
     
                     ax.plot(dates, sus, color='red')
 
