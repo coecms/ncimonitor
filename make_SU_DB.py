@@ -60,7 +60,8 @@ def parse_SU_file(filename):
                 db.addquarter(year,quarter,startdate,enddate)
             elif line.startswith("Total Grant:"):
                 total = line.split(":")[1]
-                db.addgrant(year,quarter,parse_size(total.upper()))
+                # Grant is stored in KSU, parse_size translates to SU, so divide by zero
+                db.addgrant(year,quarter,parse_size(total.upper())/1000.)
             elif line.startswith("System       Queue"):
                 insystem = True
                 f.next()
