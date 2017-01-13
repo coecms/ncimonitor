@@ -24,10 +24,12 @@ import shutil
 import re
 import gzip
 
+unit_base = { 'B' : 1024, 'SU' : 1000 }
+
 def extract_num_unit(s):
     # Match a number (possibly floating point 100.00 style) and a unit
     try:
-        size, unit = re.findall('(\d+.\d+|\d+)\s?(\D*)$',s)[0]
+        size, unit = re.findall('(\d+.\d+|\d+)\s*(\D*)$',s)[0]
     except:
         print 'Failed to match size string: ',s
         sys.exit()
@@ -37,10 +39,14 @@ def pretty_size(n,pow=0,b=1024,u='B',pre=['']+[p for p in'KMGTPEZY']):
     pow,n=min(int(log(max(n*b**pow,1),b)),len(pre)-1),n*b**pow
     return "%%.%if %%s%%s"%abs(pow%(-pow-1))%(n/b**float(pow),pre[pow],u)
         
-def parse_size(size,b=1024,u='B',pre=['']+[p for p in'KMGTPEZY']):
-    """Parse human readable file sizes, e.g. 16.4TB. Only works for 2 char suffix"""
-    pow = { k+u:v for v, k in enumerate(pre) }
+def parse_size(size,b=1000,u='',pre=['']+[p for p in'KMGTPEZY']):
+    """Parse human readable file sizes, e.g. 16.4TB, 1000KSU"""
     intsize, unit = extract_num_unit(size)
+    base = unit[1:]
+    # Check if we know this unit's base, otherwise use default
+    if base in unit_base:
+        b = unit_base[base]
+    pow = { k+base:v for v, k in enumerate(pre) }
     return float(intsize)*(b**pow[unit])
 
 def parse_inodenum(num):
