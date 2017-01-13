@@ -61,7 +61,7 @@ def parse_SU_file(filename):
             elif line.startswith("Total Grant:"):
                 total = line.split(":")[1]
                 # Grant is stored in KSU, parse_size translates to SU, so divide by zero
-                db.addgrant(year,quarter,parse_size(total.upper())/1000.)
+                db.addgrant(year,quarter,parse_size(total.upper(),u='SU')/1000.)
             elif line.startswith("System       Queue"):
                 insystem = True
                 f.next()
@@ -95,7 +95,7 @@ def parse_SU_file(filename):
                 except:
                     instorage = False
                     continue
-                print(year, quarter)
+                print(year, quarter, systemname, storagept, grant.upper(), parse_size(grant.upper()))
                 db.addsystemstorage(systemname,storagept,year,quarter,parse_size(grant.upper()),parse_inodenum(igrant))
 
 if __name__ == "__main__":

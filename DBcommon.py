@@ -39,14 +39,21 @@ def pretty_size(n,pow=0,b=1024,u='B',pre=['']+[p for p in'KMGTPEZY']):
     pow,n=min(int(log(max(n*b**pow,1),b)),len(pre)-1),n*b**pow
     return "%%.%if %%s%%s"%abs(pow%(-pow-1))%(n/b**float(pow),pre[pow],u)
         
-def parse_size(size,b=1000,u='',pre=['']+[p for p in'KMGTPEZY']):
+def parse_size(size,b=1024,u='B',pre=['']+[p for p in'KMGTPEZY']):
     """Parse human readable file sizes, e.g. 16.4TB, 1000KSU"""
     intsize, unit = extract_num_unit(size)
-    base = unit[1:]
+
+    # Account for 10B vs 10KB when looking for base
+    if len(unit) == len(u):
+        base = unit
+    else:
+        base = unit[1:]
+
     # Check if we know this unit's base, otherwise use default
     if base in unit_base:
         b = unit_base[base]
     pow = { k+base:v for v, k in enumerate(pre) }
+
     return float(intsize)*(b**pow[unit])
 
 def parse_inodenum(num):

@@ -39,4 +39,7 @@ def test_parse_numbers_with_units():
     assert(parse_size('1GSU')==1000000000)
 
     assert(parse_inodenum('10K')==10000)
-    assert(parse_inodenum('10K')==parse_size('10K'))
+
+    assert(parse_size('10B')==10)
+    assert(parse_size('10SU',u='SU')==10)
+    assert(parse_size('10.0 SU',u='SU')==10)
