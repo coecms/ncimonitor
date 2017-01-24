@@ -62,7 +62,7 @@ def parse_SU_file(filename):
                 total = line.split(":")[1]
                 # Grant is stored in KSU, parse_size translates to SU, so divide by zero
                 db.addgrant(year,quarter,parse_size(total.upper(),u='SU')/1000.)
-            elif line.startswith("System       Queue"):
+            elif line.startswith("System        Queue"):
                 insystem = True
                 f.next()
             elif insystem:
@@ -72,6 +72,7 @@ def parse_SU_file(filename):
                     insystem = False
                     continue
                 db.addsystemqueue(system,queue,weight)
+                if verbose: print 'Add project usage ',date,system,queue,usecpu,usewall,usesu
                 db.addprojectusage(date,system,queue,usecpu,usewall,usesu)
             elif line.startswith("Batch Queue Usage per User"):
                 inuser = True
