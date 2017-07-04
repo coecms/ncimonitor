@@ -136,6 +136,19 @@ class ProjectDataset(object):
             usage.append(record["totsize"])
         return dates, usage
 
+    def getusergdata(self, year, quarter, username):
+        startdate, enddate = self.getstartend(year, quarter)
+        user = self.db['User'].find_one(username=username)
+        qstring = "SELECT scandate, SUM(size) AS totsize FROM GdataUsage WHERE scandate between '{}' AND '{}' AND user={} GROUP BY scandate ORDER BY scandate".format(startdate,enddate,user['id'])
+        q = self.db.query(qstring)
+        if q is None:
+            return None
+        dates = []; usage = []
+        for record in q:
+            dates.append(self.date2date(record["scandate"]))
+            usage.append(record["totsize"])
+        return dates, usage
+
     def getshortdates(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
         qstring = "SELECT scandate FROM ShortUsage WHERE scandate between '{}' AND '{}' GROUP BY scandate ORDER BY scandate".format(startdate,enddate)
@@ -184,8 +197,19 @@ class ProjectDataset(object):
     def date2date(self, datestring):
         return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
 
-    def getsystemstorage(self, systemname, storagepoint, year, quarter):
-        q = self.db['SystemStorage'].find_one(system=systemname, storagepoint=storagepoint, year=year, quarter=quarter)
+    def getstoragepoints(self, year, quarter):
+        startdate, enddate = self.getstartend(year, quarter)
+        qstring = "SELECT storagept FROM SystemStorage WHERE date between '{}' AND '{}' GROUP BY storagept".format(startdate,enddate)
+        q = self.db.query(qstring)
+        if q is None:
+            return None
+        storagepoints = []
+        for record in q:
+            storagepoints.append(id=record["storagept"])
+        return storagepoints
+
+    def getsystemstorage(self, storagepoint, year, quarter):
+        q = self.db['SystemStorage'].find_one(storagepoint=storagepoint, year=year, quarter=quarter)
         if q is None:
             return None
         return float(q['grant']),float(q['igrant'])

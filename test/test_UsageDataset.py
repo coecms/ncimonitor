@@ -172,3 +172,10 @@ def test_addgdatausage(db):
         if date >= enddate: break
         size += 10000.; inodes += 100.
 
+def test_getstoragepoints(db):
+    year = 1984; quarter = 'q3'
+    startdate, enddate = db.getstartend(year, quarter, asdate=True)
+    date = startdate
+    storagepts = db.getusersu(year, quarter)
+    print storagepts
+    
