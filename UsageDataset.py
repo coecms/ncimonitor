@@ -197,19 +197,18 @@ class ProjectDataset(object):
     def date2date(self, datestring):
         return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
 
-    def getstoragepoints(self, year, quarter):
-        startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT storagept FROM SystemStorage WHERE date between '{}' AND '{}' GROUP BY storagept".format(startdate,enddate)
+    def getstoragepoints(self, system, year, quarter):
+        qstring = "SELECT storagepoint FROM SystemStorage WHERE system is '{}' AND year is '{}' AND quarter is '{}' GROUP BY storagepoint".format(system,year,quarter)
         q = self.db.query(qstring)
         if q is None:
             return None
         storagepoints = []
         for record in q:
-            storagepoints.append(id=record["storagept"])
+            storagepoints.append(record["storagepoint"])
         return storagepoints
 
-    def getsystemstorage(self, storagepoint, year, quarter):
-        q = self.db['SystemStorage'].find_one(storagepoint=storagepoint, year=year, quarter=quarter)
+    def getsystemstorage(self, systemname, storagepoint, year, quarter):
+        q = self.db['SystemStorage'].find_one(system=systemname, storagepoint=storagepoint, year=year, quarter=quarter)
         if q is None:
             return None
         return float(q['grant']),float(q['igrant'])
