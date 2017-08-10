@@ -18,6 +18,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import print_function
+
 import sys
 import os
 import shutil
@@ -31,7 +33,7 @@ def extract_num_unit(s):
     try:
         size, unit = re.findall('(\d+.\d+|\d+)\s*(\D*)$',s)[0]
     except:
-        print 'Failed to match size string: ',s
+        print('Failed to match size string: ',s)
         sys.exit()
     return float(size), unit
 
@@ -76,7 +78,7 @@ def archive(filepath,archive_dir='archive'):
     try:
         mkdir(archive_dir)
     except:
-        print "Error making archive directory"
+        print("Error making archive directory")
         return
 
     try:
@@ -84,17 +86,17 @@ def archive(filepath,archive_dir='archive'):
         outfile = os.path.join(dir,archive_dir,filename)+'.gz'
         with open(filename, 'rb') as f_in, gzip.open(outfile, 'wb') as f_out:
             shutil.copyfileobj(f_in, f_out)
-    except Exception, e:
-        print "Error archiving ",filepath
-        print e
+    except Exception as e:
+        print("Error archiving ",filepath)
+        print(e)
     else:
         try:
             os.remove(filepath)
         except:
-            print "Error removing ",filepath
+            print("Error removing ",filepath)
 
 def datetoyearquarter(date):
     year = date.year
     # Convert month into year and quarter
-    quarter = 'q{}'.format((int(date.month) - 1) / 3 + 1)
+    quarter = 'q{}'.format(int(((date.month) - 1) / 3) + 1)
     return year, quarter
