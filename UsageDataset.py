@@ -18,9 +18,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import print_function
+
 from dataset import *
 import datetime
 from pwd import getpwnam
+import pandas as pd
 
 class NotInDatabase(Exception):
     pass
@@ -135,6 +138,36 @@ class ProjectDataset(object):
             dates.append(self.date2date(record["scandate"]))
             usage.append(record["totsize"])
         return dates, usage
+
+    def getstorage(self, year, quarter, storagept='short', datafield='size', namefield='user+name'):
+
+        startdate, enddate = self.getstartend(year, quarter)
+
+        if storagept == 'short':
+            table = 'ShortUsage'
+        elif storagept == 'gdata':
+            table = 'GdataUsage'
+        else:
+            raise ValueError('Incorrect value of storagept: {} Valid values are "short" or "gdata"'.format(storagept))
+
+        if namefield == 'user+name':
+            name_sql = 'printf("%s (%s)", User.fullname, User.username)'
+        elif namefield == 'user':
+            name_sql = 'User.username'
+        else:
+            raise ValueError('Incorrect value of namefield: {} Valid values are "user+name" or "user"'.format(namefield))
+
+        if datafield not in ('size','inodes'):
+            raise ValueError('Incorrect value of datafield: {} Valid values are "inodes" or "size"'.format(namefield))
+
+        qstring = 'SELECT {namefield} as Name, scandate as Date, SUM({datafield}) AS totsize FROM {table} LEFT JOIN User ON {table}.user = User.id WHERE scandate between \'{start}\' AND \'{end}\' GROUP BY Name, Date ORDER BY Date'
+
+        # Make columns of all the individuals, rows are indexed by date
+        df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate),self.db.executable).pivot(index='Date',columns='Name')
+        # Get rid of the totsize labels in the multiindex
+        df.columns = df.columns.get_level_values(1)
+
+        return df
 
     def getusergdata(self, year, quarter, username):
         startdate, enddate = self.getstartend(year, quarter)
