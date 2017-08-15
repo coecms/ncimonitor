@@ -27,7 +27,7 @@ import argparse
 # import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.dates import MONDAY, DayLocator, WeekdayLocator, MonthLocator, DateFormatter, drange
-from matplotlib.dates import AutoDateFormatter, AutoDateLocator
+from matplotlib.dates import AutoDateFormatter, AutoDateLocator, num2date
 import matplotlib.patches as mpatches
 from matplotlib.colors import ListedColormap
 import numpy as np
@@ -67,6 +67,114 @@ def get_ideal_SU_usage(db, year, quarter, total_grant):
 
     return dates, usage
 
+def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0):
+
+    if datafield == 'size':
+        # Scale sizes to GB
+        # scale = 1.e12       # 1 GB 1000^4
+        scale = 1099511627776. # 1 GB 1024^4
+        ylabel = "Storage Used (TB)"
+    else:
+        scale = 1
+        ylabel = "Inodes"
+
+    if storagept == 'gdata':
+        system = 'global'
+    else:
+        system = 'raijin'
+
+    dp = db.getstorage(year, quarter, storagept=storagept, datafield=datafield) / scale
+
+    ideal = None
+    if args.delta:
+        # Normalise by usage at beginning of the month
+        dp = dp - dp.iloc[0,:].values
+        # Select columns based on proscribed cutoff
+        dp = dp.loc[:,dp.abs().max(axis=0)>cutoff]
+        title = "Change in {} file usage since beginning of quarter {}.{} for Project {}".format(storagept,year,quarter,project)
+        type = 'line'
+    else:
+        # Select columns based on proscribed cutoff
+        dp = dp.loc[:,dp.max(axis=0)>cutoff]
+        title = "{} file usage for Project {} ({}.{})".format(storagept,project,year,quarter)
+        type = 'area'
+        if showtotal:
+            grant, igrant = db.getsystemstorage(system, storagept, year, quarter)
+            if datafield == 'size':
+                ideal = grant
+            else:
+                ideal = igrant
+            ideal = [ideal/scale] * 2
+
+    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=None)
+
+def plot_usage(year,quarter,byuser,total):
+
+    dp = db.getusage(year, quarter)
+
+    scale = 1000.
+
+    dp = dp / scale
+
+    ideal = None
+
+    title = "Usage for Project {} on {} ({}.{})".format(project,system,year,quarter)
+    ylabel = "Compute resources (KSU)"
+
+    ideal = None
+    if not byuser:
+        # Sum all the individual users
+        dp = dp.sum(axis=1)
+        # Fill in the remainder of the quarter with NA
+        ideal_dates, ideal_usage = get_ideal_SU_usage(db, year, quarter, total)
+        for d in ideal_dates:
+            date = num2date(d).strftime("%Y-%m-%d")
+            if date not in dp:
+                dp[date] = None
+        ideal = (0,total)
+
+    plot_dataframe(dp, type='line', ylabel=ylabel, title=title, ideal=ideal, outfile=None)
+
+def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff=None, ideal=None, outfile=None):
+
+    if len(df.shape) > 1:
+        # Sort rows by the value of the last row in each column. Only works with recent versions of pandas.
+        df.sort_values(df.last_valid_index(), axis=1, inplace=True, ascending=False)
+        # Make a custom colormap which is just the number of colours we need. Prevents
+        # unwanted interpolation
+        cm = ListedColormap(brewer_qualitative[:df.shape[1]], "myhues")
+    else:
+        cm = ListedColormap(brewer_qualitative[:1], "myhues")
+
+    fig = plt.figure(figsize=figsize)
+
+    ax = fig.add_axes([0.1, 0.15, 0.7, 0.7, ])
+
+    if title is not None: ax.set_title(title)
+    if xlabel is not None: ax.set_xlabel(xlabel)
+    if ylabel is not None: ax.set_ylabel(ylabel)
+
+    if type == 'area':
+        df.plot.area(ax=ax,use_index=True, colormap=cm, legend='reverse')#.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        handles, labels = ax.get_legend_handles_labels()
+        ax.legend(reversed(handles), reversed(labels), loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
+    else:
+        df.plot(ax=ax,use_index=True, colormap=cm, legend=True) #.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
+
+    if ideal is not None:
+        # Plot a blue dashed line to indicate the 
+        ax.plot(ax.get_xlim(), ideal, '--', color='blue')
+
+    # Make sure y axis is always updated as we're overlaying new data
+    plt.autoscale(enable=True,axis='y')
+    # Always snap bottom axis to zero, but not for --delta so keep in this block
+    ax.set_ylim(bottom=0.)
+
+    if outfile is not None:
+        fig.savefig(outfile)
+
+
 if __name__ == "__main__":
 
     username = getuser()
@@ -79,6 +187,7 @@ if __name__ == "__main__":
     parser.add_argument("-S","--system", help="System name", default="raijin")
     parser.add_argument("--usage", help="Show SU usage (default true)", action='store_true')
     parser.add_argument("--short", help="Show short usage (default true)", action='store_true')
+    parser.add_argument("--gdata", help="Show gdata usage (default true)", action='store_true')
     parser.add_argument("--inodes", help="Show inode usage (default false)", action='store_true')
     parser.add_argument("--byuser", help="Show SU usage by user", action='store_true')
     parser.add_argument("--maxusage", help="Set the maximum SU usage (useful for individual users)", type=float)
@@ -86,10 +195,10 @@ if __name__ == "__main__":
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
     parser.add_argument("--username", help="Show username rather than full name in plot legend", action='store_true')
     parser.add_argument("-n","--num", help="Show only top num users where appropriate", type=int, default=None)
-    parser.add_argument("-c","--cutoff", help="Show only users whose usage exceeds cutoff", type=float, default=None)
+    parser.add_argument("-c","--cutoff", help="Show only users whose storage exceeds cutoff", type=float, default=None)
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("--shorttotal", help="Show the short file limit", action='store_true')
-    group.add_argument("-d","--delta", help="Show change in short usage since beginning of time period", action='store_true')
+    group.add_argument("--showtotal", help="Show the file usage limit", action='store_true')
+    group.add_argument("-d","--delta", help="Show change in file system usage since beginning of time period", action='store_true')
 
 
     args = parser.parse_args()
@@ -97,17 +206,16 @@ if __name__ == "__main__":
 
     figsize=(12,10)
 
-    # If we define either short or usage, disable the other unless it is explicitly specified
-    # and default to both being true
-    if args.short:
-        if not args.usage:
-            args.usage = False
-    elif args.usage:
-        if not args.short:
-            args.short = False
-    else:
+    # If we don't define any of short, usage, or gdata default to all being true
+    if not(args.short or args.usage or args.gdata):
         args.usage = True
         args.short = True
+        args.gdata = True
+
+    if args.cutoff is not None:
+        cutoff = args.cutoff
+    else:
+        cutoff = 0.
             
     plot_by_user = args.byuser
     if args.period is not None:
@@ -156,154 +264,15 @@ if __name__ == "__main__":
         ideal_dates, ideal_usage = get_ideal_SU_usage(db, year, quarter, total_grant)
 
         if args.usage:
-    
-            plotted = False
-            fig1 = plt.figure(figsize=figsize)
 
-            if (plot_by_user):
-
-                ax = fig1.add_axes([0.1, 0.15, 0.7, 0.7 ])
-                ax.set_xlabel("Date")
-
-                if len(users) <= 0:
-                    users = db.getsuusers(year, quarter)
-                    if num_show is not None:
-                        users = users[0:min(num_show,len(users))]
-
-                ucols = zip(users, cycle(iwanthuecolors)) if len(users) > len(iwanthuecolors) else zip(users, iwanthuecolors)
-    
-                for user, color in ucols:
-                    dates, sus = db.getusersu(year, quarter, user, scale=0.001)
-                    if len(sus) <= 0: continue 
-                    if max(sus) > SU_threshold:
-                        plotted = True
-                        if use_full_name:
-                            namelabel = db.getuser(user)['fullname']
-                        else:
-                            namelabel = user
-                        ax.plot(dates, sus, color=color, linewidth=2, label=namelabel)
-
-                if plotted:
-                    if args.maxusage: ax.plot(ideal_dates, ideal_usage, '--', color='blue')
-    
-                    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
-                else:
-                    print("No usage data found to plot")
-
-            else:
-
-                dates, sus = db.getprojectsu(year, quarter)
-
-                if len(sus) > 0:
-
-                    ax = fig1.add_axes([0.1, 0.15, 0.85, 0.8, ])
-                    ax.set_xlabel("Date")
-
-                    ax.plot(ideal_dates, ideal_usage, '--', color='blue')
-    
-                    ax.plot(dates, sus, color='red')
-
-                    plotted = True
-
-            if (plotted):
-                ax.set_title("Usage for Project {} on {} ({}.{})".format(project,system,year,quarter))
-                ax.set_ylabel("KSUs")
-    
-                monthsFmt = DateFormatter("%-d '%b")
-                ax.xaxis.set_major_formatter(monthsFmt)
-    
-                xtick_locator = AutoDateLocator()
-                xtick_formatter = AutoDateFormatter(xtick_locator)
-                ax.xaxis.set_major_locator(xtick_locator)
-    
-                fig1.autofmt_xdate()
-    
-                if args.pdf:
-                    outfile = "nci_usage_{}_{}.{}.pdf".format(project,year,quarter)
-                    fig1.savefig(outfile)
-            else:
-                # Left for refernce: these do not work and create an error, so just let an
-                # empty plot be created instead
-                # plt.clf()
-                # plt.close(fig1)
-                pass
-            
+            plot_usage(year,quarter,args.byuser,total_grant)
 
         if args.short:
 
-            fig2 = plt.figure(figsize=figsize)
+            plot_storage('short',year,quarter,datafield,args.showtotal,cutoff)
 
-            ax = fig2.add_axes([0.1, 0.15, 0.7, 0.7, ])
+        if args.gdata:
 
-            if datafield == 'size':
-                # Scale sizes to GB
-                # scale = 1.e12       # 1 GB 1000^4
-                scale = 1099511627776. # 1 GB 1024^4
-                ylabel = "Storage Used (TB)"
-            else:
-                scale = 1
-                ylabel = "Inodes"
-
-            dp = db.getstorage(year, quarter, storagept='short', datafield=datafield) / scale
-
-            if args.cutoff is None:
-                cutoff = 0
-            else:
-                cutoff = args.cutoff
-
-            if args.delta:
-                # Normalise by usage at beginning of the month
-                dp = dp - dp.iloc[0,:].values
-                # Select columns based on proscribed cutoff
-                dp = dp.loc[:,dp.abs().max(axis=0)>cutoff]
-                title = "Change in short file usage since beginning of quarter {}.{} for Project {} on {}".format(year,quarter,project,system)
-            else:
-                # Select columns based on proscribed cutoff
-                dp = dp.loc[:,dp.max(axis=0)>cutoff]
-                title = "Short file usage for Project {} on {} ({}.{})".format(project,system,year,quarter)
-
-            ax.set_title(title)
-            ax.set_ylabel(ylabel)
-
-            # Sort rows by the value of the last row in each column. Only works with recent versions of pandas.
-            dp.sort_values(dp.last_valid_index(), axis=1, inplace=True, ascending=False)
-
-            # Make a custom colormap which is just the number of colours we need. Prevents
-            # unwanted interpolation
-            cm = ListedColormap(brewer_qualitative[:dp.shape[1]], "myhues")
-
-            if (args.delta):
-                dp.plot(ax=ax,use_index=True, colormap=cm, legend=True)#.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-                ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
-            else:
-                dp.plot.area(ax=ax,use_index=True, colormap=cm, legend='reverse')#.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-                handles, labels = ax.get_legend_handles_labels()
-                ax.legend(reversed(handles), reversed(labels), loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
-
-            if args.shorttotal:
-                grant, igrant = db.getsystemstorage(system, 'short', year, quarter)
-                if datafield == 'size':
-                    grant = grant/scale
-                else:
-                    grant = igrant
-                # Plot a blue dashed line to indicate the 
-                ax.plot(ax.get_xlim(), (grant, grant), '--', color='blue')
-                # Make sure y axis is always updated as we're overlaying new data
-                plt.autoscale(enable=True,axis='y')
-                # Always snap bottom axis to zero, but not for --delta so keep in this block
-                ax.set_ylim(bottom=0.)
-    
-            # monthsFmt = DateFormatter("%-d '%b")
-            # ax.xaxis.set_major_formatter(monthsFmt)
-
-            # xtick_locator = AutoDateLocator()
-            # xtick_formatter = AutoDateFormatter(xtick_locator)
-            # ax.xaxis.set_major_locator(xtick_locator)
-
-            ## fig2.autofmt_xdate()
-
-            if args.pdf:
-                outfile = "nci_short_{}_{}.{}.pdf".format(project,year,quarter)
-                fig2.savefig(outfile)
+            plot_storage('gdata',year,quarter,datafield,args.showtotal,cutoff)
 
     if not args.noshow: plt.show()

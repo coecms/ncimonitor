@@ -139,6 +139,35 @@ class ProjectDataset(object):
             usage.append(record["totsize"])
         return dates, usage
 
+    def getusage(self, year, quarter, datafield='usage_su', namefield='user+name'):
+
+        startdate, enddate = self.getstartend(year, quarter)
+
+        if namefield == 'user+name':
+            name_sql = 'printf("%s (%s)", User.fullname, User.username)'
+        elif namefield == 'user':
+            name_sql = 'User.username'
+        else:
+            raise ValueError('Incorrect value of namefield: {} Valid values are "user+name" or "user"'.format(namefield))
+
+        if datafield not in ('usage_su','usage_wall','usage_cpu'):
+            raise ValueError('Incorrect value of datafield: {} Valid values are "usage_su", "usage_wall" or "usage_cpu"'.format(namefield))
+
+        qstring = """SELECT {namefield} as Name, date as Date, SUM({datafield}) AS totsu
+        FROM UserUsage
+        LEFT JOIN User ON UserUsage.user = User.id 
+        WHERE date between \'{start}\' AND \'{end}\' 
+        GROUP BY Name, Date 
+        ORDER BY Date"""
+
+        # Make columns of all the individuals, rows are indexed by date
+        df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,start=startdate,end=enddate),self.db.executable).pivot_table(index='Date',columns='Name',fill_value=0)
+        # Get rid of the totsize labels in the multiindex
+        df.columns = df.columns.get_level_values(1)
+
+        return df
+
+
     def getstorage(self, year, quarter, storagept='short', datafield='size', namefield='user+name'):
 
         startdate, enddate = self.getstartend(year, quarter)
@@ -240,8 +269,19 @@ class ProjectDataset(object):
             storagepoints.append(record["storagepoint"])
         return storagepoints
 
-    def getsystemstorage(self, systemname, storagepoint, year, quarter):
-        q = self.db['SystemStorage'].find_one(system=systemname, storagepoint=storagepoint, year=year, quarter=quarter)
+    def getgdatastoragept(self, year, quarter):
+        q = self.db['SystemStorage'].find_one(system='global', year=year, quarter=quarter)
         if q is None:
             return None
+        return q["storagepoint"]
+
+    def getsystemstorage(self, systemname, storagepoint, year, quarter):
+        if storagepoint == 'gdata':
+            # look up which gdata system this project is using. This is dumb, but it works
+            point = self.getgdatastoragept(year, quarter)
+        else:
+            point = storagepoint
+        q = self.db['SystemStorage'].find_one(system=systemname, storagepoint=point, year=year, quarter=quarter)
+        if q is None:
+            return (None,None)
         return float(q['grant']),float(q['igrant'])
