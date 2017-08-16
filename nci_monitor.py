@@ -67,7 +67,15 @@ def get_ideal_SU_usage(db, year, quarter, total_grant):
 
     return dates, usage
 
-def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0):
+def select_users(df,users):
+
+    # Make a series out of the column names, convert to a string and do a simple "OR" regex
+    # as the column name has full name as well as username, and this is taking usernames to match
+    df = df.loc[:,df.columns.to_series().str.contains('|'.join(users))]
+    return df 
+
+
+def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0,users=None):
 
     if datafield == 'size':
         # Scale sizes to GB
@@ -85,7 +93,9 @@ def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0):
 
     dp = db.getstorage(year, quarter, storagept=storagept, datafield=datafield) / scale
 
-    ideal = None
+    if users is not None: dp = select_users(dp,users)
+
+    ideal = None; sort = True
     if args.delta:
         # Normalise by usage at beginning of the month
         dp = dp - dp.iloc[0,:].values
@@ -94,8 +104,15 @@ def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0):
         title = "Change in {} file usage since beginning of quarter {}.{} for Project {}".format(storagept,year,quarter,project)
         type = 'line'
     else:
+        dp.sort_values(dp.last_valid_index(), axis=1, inplace=True, ascending=False)
         # Select columns based on proscribed cutoff
-        dp = dp.loc[:,dp.max(axis=0)>cutoff]
+        mask = dp.max(axis=0)>cutoff
+        if not all(mask):
+            othername = 'Remainder'
+            # Sort rows by the value of the last row in each column. Only works with recent versions of pandas.
+            # Need to sort now as we have an others column we want to retain in place
+            dp = pd.concat( [ dp.loc[:,mask], dp.loc[:,~mask].sum(axis=1).rename(othername) ], axis=1)
+            sort = False
         title = "{} file usage for Project {} ({}.{})".format(storagept,project,year,quarter)
         type = 'area'
         if showtotal:
@@ -106,9 +123,9 @@ def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0):
                 ideal = igrant
             ideal = [ideal/scale] * 2
 
-    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=None)
+    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=None, sort=sort)
 
-def plot_usage(year,quarter,byuser,total):
+def plot_usage(year,quarter,byuser,total,users):
 
     dp = db.getusage(year, quarter)
 
@@ -121,11 +138,16 @@ def plot_usage(year,quarter,byuser,total):
     title = "Usage for Project {} on {} ({}.{})".format(project,system,year,quarter)
     ylabel = "Compute resources (KSU)"
 
+    if users is not None:
+        byuser = True
+        dp = select_users(dp,users)
+
     ideal = None
     if not byuser:
         # Sum all the individual users
         dp = dp.sum(axis=1)
-        # Fill in the remainder of the quarter with NA
+        # Fill in the remainder of the quarter with NA (there is a smart pandas
+        # way to do this, and this isn't it)
         ideal_dates, ideal_usage = get_ideal_SU_usage(db, year, quarter, total)
         for d in ideal_dates:
             date = num2date(d).strftime("%Y-%m-%d")
@@ -133,13 +155,13 @@ def plot_usage(year,quarter,byuser,total):
                 dp[date] = None
         ideal = (0,total)
 
-    plot_dataframe(dp, type='line', ylabel=ylabel, title=title, ideal=ideal, outfile=None)
+    plot_dataframe(dp, type='line', ylabel=ylabel, title=title, ideal=ideal, outfile=None, legend=byuser)
 
-def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff=None, ideal=None, outfile=None):
+def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff=None, ideal=None, outfile=None, legend=True, sort=True):
 
     if len(df.shape) > 1:
         # Sort rows by the value of the last row in each column. Only works with recent versions of pandas.
-        df.sort_values(df.last_valid_index(), axis=1, inplace=True, ascending=False)
+        if sort: df.sort_values(df.last_valid_index(), axis=1, inplace=True, ascending=False)
         # Make a custom colormap which is just the number of colours we need. Prevents
         # unwanted interpolation
         cm = ListedColormap(brewer_qualitative[:df.shape[1]], "myhues")
@@ -155,12 +177,13 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
     if ylabel is not None: ax.set_ylabel(ylabel)
 
     if type == 'area':
-        df.plot.area(ax=ax,use_index=True, colormap=cm, legend='reverse')#.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(reversed(handles), reversed(labels), loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
+        df.plot.area(ax=ax,use_index=True, colormap=cm) #, legend='reverse')#.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        if legend:
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(reversed(handles), reversed(labels), loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
     else:
-        df.plot(ax=ax,use_index=True, colormap=cm, legend=True) #.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
+        df.plot(ax=ax,use_index=True, colormap=cm) #, legend=legend) #.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        if legend: ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
 
     if ideal is not None:
         # Plot a blue dashed line to indicate the 
@@ -242,10 +265,10 @@ if __name__ == "__main__":
 
     for project in args.project:
 
-        users = []
+        users = None
         if args.users is not None:
             plot_by_user = True
-            users.extend(args.users)
+            users = args.users
 
         dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
         try:
@@ -265,14 +288,14 @@ if __name__ == "__main__":
 
         if args.usage:
 
-            plot_usage(year,quarter,args.byuser,total_grant)
+            plot_usage(year,quarter,args.byuser,total_grant,users)
 
         if args.short:
 
-            plot_storage('short',year,quarter,datafield,args.showtotal,cutoff)
+            plot_storage('short',year,quarter,datafield,args.showtotal,cutoff,users)
 
         if args.gdata:
 
-            plot_storage('gdata',year,quarter,datafield,args.showtotal,cutoff)
+            plot_storage('gdata',year,quarter,datafield,args.showtotal,cutoff,users)
 
     if not args.noshow: plt.show()
