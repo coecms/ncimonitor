@@ -75,7 +75,7 @@ def select_users(df,users):
     return df 
 
 
-def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0,users=None):
+def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=None):
 
     if datafield == 'size':
         # Scale sizes to GB
@@ -125,7 +125,7 @@ def plot_storage(storagept,year,quarter,datafield,showtotal,cutoff=0,users=None)
 
     plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=None, sort=sort)
 
-def plot_usage(year,quarter,byuser,total,users):
+def plot_usage(db,year,quarter,byuser,total,users):
 
     dp = db.getusage(year, quarter)
 
@@ -146,6 +146,8 @@ def plot_usage(year,quarter,byuser,total,users):
     if not byuser:
         # Sum all the individual users
         dp = dp.sum(axis=1)
+
+    if total is not None:
         # Fill in the remainder of the quarter with NA (there is a smart pandas
         # way to do this, and this isn't it)
         ideal_dates, ideal_usage = get_ideal_SU_usage(db, year, quarter, total)
@@ -153,7 +155,7 @@ def plot_usage(year,quarter,byuser,total,users):
             date = num2date(d).strftime("%Y-%m-%d")
             if date not in dp:
                 dp[date] = None
-        ideal = (0,total)
+            ideal = (0,total)
 
     plot_dataframe(dp, type='line', ylabel=ylabel, title=title, ideal=ideal, outfile=None, legend=byuser)
 
@@ -258,9 +260,6 @@ if __name__ == "__main__":
     if num_show is not None and num_show < 1: 
         raise ValueError('num must be > 0') 
 
-    # Currently not implemented
-    SU_threshold = 0.0
-
     dbfileprefix = '/short/public/aph502/.data/'
 
     for project in args.project:
@@ -276,26 +275,24 @@ if __name__ == "__main__":
         except:
             print("ERROR! You are not a member of this group: ",project)
             continue
-
-        if args.maxusage:
-            total_grant = args.maxusage
         else:
-            total_grant = db.getgrant(year, quarter)
+            if args.maxusage:
+                total_grant = args.maxusage
+            else:
+                total_grant = db.getgrant(year, quarter)
 
-        system = args.system
-
-        ideal_dates, ideal_usage = get_ideal_SU_usage(db, year, quarter, total_grant)
-
-        if args.usage:
-
-            plot_usage(year,quarter,args.byuser,total_grant,users)
-
-        if args.short:
-
-            plot_storage('short',year,quarter,datafield,args.showtotal,cutoff,users)
-
-        if args.gdata:
-
-            plot_storage('gdata',year,quarter,datafield,args.showtotal,cutoff,users)
-
-    if not args.noshow: plt.show()
+            system = args.system
+    
+            if args.usage:
+    
+                plot_usage(db,year,quarter,args.byuser,total_grant,users)
+    
+            if args.short:
+    
+                plot_storage(db,'short',year,quarter,datafield,args.showtotal,cutoff,users)
+    
+            if args.gdata:
+    
+                plot_storage(db,'gdata',year,quarter,datafield,args.showtotal,cutoff,users)
+    
+            if not args.noshow: plt.show()
