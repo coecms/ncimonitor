@@ -6,7 +6,7 @@ before_install:
     - pip install codecov
 install:
     - pip install --upgrade pytest
-    - pip install dataset
+    - pip install dataset pandas
 env:
   global:
     - PYTHONPATH=$PYTHONPATH:..:.

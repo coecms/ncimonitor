@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import pytest
 import sys
+import pandas as pd
 
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from numpy import arange
@@ -180,3 +181,25 @@ def test_getstoragepoints(db):
     storagepts = db.getstoragepoints(system, year, quarter)
     print(storagepts)
     
+
+def test_getstorage(db):
+    system = 'deepblue'
+    year = 1984; quarter = 'q3'
+    
+    dp = db.getstorage(year, quarter, storagept='gdata', datafield='size')
+    assert(dp['Winston Smith (wxs1984)'].sum() == 131950000.0)
+
+    dp = db.getstorage(year, quarter, storagept='gdata', datafield='inodes')
+    assert(dp['Big Brother (bxb1984)'].sum() == 410865.0)
+
+        
+
+def test_getusage(db):
+    system = 'deepblue'
+    year = 1984; quarter = 'q3'
+    
+    dp = db.getusage(year, quarter)
+    assert(dp['Winston Smith (wxs1984)'].sum() == 1228500)
+    assert(dp['Big Brother (bxb1984)'].sum() == 1228500)
+
+        
