@@ -160,10 +160,12 @@ class ProjectDataset(object):
         GROUP BY Name, Date 
         ORDER BY Date"""
 
-        # Make columns of all the individuals, rows are indexed by date
+        # Pivot makes columns of all the individuals, rows are indexed by date
         df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,start=startdate,end=enddate),self.db.executable).pivot_table(index='Date',columns='Name',fill_value=0)
         # Get rid of the totsize labels in the multiindex
         df.columns = df.columns.get_level_values(1)
+        # Convert date index from labels to datetime objects 
+        df.index = pd.to_datetime(df.index, format="%Y-%m-%d")
 
         return df
 
@@ -189,12 +191,19 @@ class ProjectDataset(object):
         if datafield not in ('size','inodes'):
             raise ValueError('Incorrect value of datafield: {} Valid values are "inodes" or "size"'.format(namefield))
 
-        qstring = 'SELECT {namefield} as Name, scandate as Date, SUM({datafield}) AS totsize FROM {table} LEFT JOIN User ON {table}.user = User.id WHERE scandate between \'{start}\' AND \'{end}\' GROUP BY Name, Date ORDER BY Date'
+        qstring = """SELECT {namefield} as Name, scandate as Date, SUM({datafield}) AS totsize 
+        FROM {table}
+        LEFT JOIN User ON {table}.user = User.id
+        WHERE scandate between \'{start}\' AND \'{end}\'
+        GROUP BY Name, Date
+        ORDER BY Date"""
 
-        # Make columns of all the individuals, rows are indexed by date
-        df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate),self.db.executable).pivot(index='Date',columns='Name')
+        # Pivot makes columns of all the individuals, rows are indexed by date
+        df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate), self.db.executable).pivot(index='Date',columns='Name')
         # Get rid of the totsize labels in the multiindex
         df.columns = df.columns.get_level_values(1)
+        # Convert date index from labels to datetime objects 
+        df.index = pd.to_datetime(df.index, format="%Y-%m-%d")
 
         return df
 

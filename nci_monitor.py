@@ -149,8 +149,6 @@ def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
 
     dp = dp / scale
 
-    ideal = None
-
     title = "Usage for Project {} on {} ({}.{})".format(project,system,year,quarter)
     ylabel = "Compute resources (KSU)"
 
@@ -162,20 +160,16 @@ def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
         warn("No data to display for this selection")
         return
 
-    ideal = None
     if not byuser:
         # Sum all the individual users
         dp = dp.sum(axis=1)
 
+    ideal = None
     if total is not None:
-        # Fill in the remainder of the quarter with NA (there is a smart pandas
-        # way to do this, and this isn't it)
-        ideal_dates, ideal_usage = get_ideal_SU_usage(db, year, quarter, total)
-        for d in ideal_dates:
-            date = num2date(d).strftime("%Y-%m-%d")
-            if date not in dp:
-                dp[date] = None
-            ideal = (0,total)
+        # Fill in the remainder of the quarter with NA so the plot will span entire quarter. The
+        # ideal value will then be plotted at the end of the quarter
+        dp = dp.reindex(pd.date_range(*db.getstartend(year, quarter, asdate=True)),method='backfill')
+        ideal = (0,total)
 
     outfile = None
     if pdf:
@@ -212,13 +206,22 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
         if legend: ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
 
     if ideal is not None:
-        # Plot a blue dashed line to indicate the 
+        # Plot a blue dashed line to indicate some ideal value or limit
         ax.plot(ax.get_xlim(), ideal, '--', color='blue')
 
     # Make sure y axis is always updated as we're overlaying new data
     plt.autoscale(enable=True,axis='y')
     # Always snap bottom axis to zero, but not for --delta so keep in this block
     ax.set_ylim(bottom=0.)
+
+    monthsFmt = DateFormatter("%-d '%b")
+    ax.xaxis.set_major_formatter(monthsFmt)
+
+    xtick_locator = AutoDateLocator()
+    xtick_formatter = AutoDateFormatter(xtick_locator)
+    ax.xaxis.set_major_locator(xtick_locator)
+
+    fig.autofmt_xdate()
 
     if outfile is not None:
         fig.savefig(outfile)
@@ -267,6 +270,7 @@ if __name__ == "__main__":
         cutoff = 0.
             
     plot_by_user = args.byuser
+
     if args.period is not None:
         year, quarter = args.period.split(".")
     else:
@@ -288,11 +292,6 @@ if __name__ == "__main__":
 
     for project in args.project:
 
-        users = None
-        if args.users is not None:
-            plot_by_user = True
-            users = args.users
-
         dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
         try:
             db = ProjectDataset(project,dbfile)
@@ -300,16 +299,26 @@ if __name__ == "__main__":
             print("ERROR! You are not a member of this group: ",project)
             continue
         else:
+
+            users = None
+            if args.users is not None:
+                plot_by_user = True
+                users = args.users
+
             if args.maxusage:
                 total_grant = args.maxusage
             else:
-                total_grant = db.getgrant(year, quarter)
+                if plot_by_user:
+                    # Doesn't make sense to show "ideal" usage when showing individual usage
+                    total_grant = None
+                else:
+                    total_grant = db.getgrant(year, quarter)
 
             system = args.system
     
             if args.usage:
     
-                plot_usage(db,year,quarter,args.byuser,total_grant,users,args.pdf)
+                plot_usage(db,year,quarter,plot_by_user,total_grant,users,args.pdf)
     
             if args.short:
     
