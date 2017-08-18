@@ -7,7 +7,7 @@ channels:
 
 dependencies:
     - python
-    - sqlite3
+    - sqlite
     - dataset
     - pandas
     - matplotlib
