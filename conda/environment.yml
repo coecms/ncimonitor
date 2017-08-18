@@ -1,0 +1,14 @@
+name: ncimonitor
+
+channels:
+    - coecms
+    - conda-forge
+    - defaults
+
+dependencies:
+    - python
+    - sqlite3
+    - dataset
+    - pandas
+    - matplotlib
+    - numpy
