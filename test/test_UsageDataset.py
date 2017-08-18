@@ -77,7 +77,7 @@ def test_addquarter(db):
     enddate = datetime.date(year, month, day)
     quarter = 'q3'
     db.addquarter(year,quarter,startdate,enddate)
-    sdate, edate = db.getstartend(year, quarter, asdate=True)
+    sdate, edate = db.getstartend(year, quarter)
     assert( sdate == startdate )
     assert( edate == enddate )
 
@@ -87,7 +87,7 @@ def test_addquarter(db):
     enddate = datetime.date(year, month, day)
     quarter = 'q4'
     db.addquarter(year,quarter,startdate,enddate)
-    sdate, edate = db.getstartend(year, quarter, asdate=True)
+    sdate, edate = db.getstartend(year, quarter)
     assert( sdate == startdate )
     assert( edate == enddate )
 
@@ -135,7 +135,7 @@ def test_addsystemstorage(db):
         
 def test_adduserusage(db):
     year = 1984; quarter = 'q3'
-    startdate, enddate = db.getstartend(year, quarter, asdate=True)
+    startdate, enddate = db.getstartend(year, quarter)
     date = startdate
     usecpu = 0.0; usewall=0.0; usesu = 0.0
     while True:
@@ -157,7 +157,7 @@ def test_adduserusage(db):
 
 def test_addgdatausage(db):
     year = 1984; quarter = 'q3'
-    startdate, enddate = db.getstartend(year, quarter, asdate=True)
+    startdate, enddate = db.getstartend(year, quarter)
     date = startdate
     size = 0.; inodes = 0.
     storagept = 'array1'
@@ -175,7 +175,7 @@ def test_addgdatausage(db):
 def test_getstoragepoints(db):
     system = 'deepblue'
     year = 1984; quarter = 'q3'
-    startdate, enddate = db.getstartend(year, quarter, asdate=True)
+    startdate, enddate = db.getstartend(year, quarter)
     date = startdate
     storagepts = db.getstoragepoints(system, year, quarter)
     print(storagepts)
