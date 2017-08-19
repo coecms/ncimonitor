@@ -18,6 +18,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import print_function
+
 import argparse
 import pwd
 import datetime
@@ -69,7 +71,7 @@ def parse_short_file(filename):
                     except:
                         break
                     db.adduser(user)
-                    if verbose: print 'Adding short ',folder,user,size,inodes,scandate
+                    if verbose: print('Adding short ',folder,user,size,inodes,scandate)
                     db.addshortusage(folder,user,parse_size(size.upper()),inodes,scandate)
             except:
                 break
@@ -85,7 +87,7 @@ if __name__ == "__main__":
     verbose = args.verbose
 
     for f in args.inputs:
-        if verbose: print f
+        if verbose: print(f)
         try:
             parse_short_file(f);
         except:

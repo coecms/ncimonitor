@@ -18,6 +18,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
+from __future__ import print_function
+
 import argparse
 import pwd
 import datetime
@@ -49,7 +51,7 @@ def parse_SU_file(filename):
                 words = line.split()
                 project = words[2].split('=')[1]
                 year, quarter = words[4].split('=')[1].split('.')
-                print year, quarter
+                print(year, quarter)
                 startdate, enddate = words[5].split('-')
                 startdate = datetime.datetime.strptime(startdate.strip('('),"%d/%m/%Y").date()
                 enddate = datetime.datetime.strptime(enddate.strip(')'),"%d/%m/%Y").date()
@@ -72,7 +74,7 @@ def parse_SU_file(filename):
                     insystem = False
                     continue
                 db.addsystemqueue(system,queue,weight)
-                if verbose: print 'Add project usage ',date,system,queue,usecpu,usewall,usesu
+                if verbose: print('Add project usage ',date,system,queue,usecpu,usewall,usesu)
                 db.addprojectusage(date,system,queue,usecpu,usewall,usesu)
             elif line.startswith("Batch Queue Usage per User"):
                 inuser = True
@@ -85,7 +87,7 @@ def parse_SU_file(filename):
                     inuser = False
                     continue
                 db.adduser(user)
-                if verbose: print 'Add usage ',date,user,usecpu,usewall,usesu
+                if verbose: print('Add usage ',date,user,usecpu,usewall,usesu)
                 db.adduserusage(date,user,usecpu,usewall,usesu)
             elif line.startswith("System    StoragePt"):
                 instorage = True
@@ -110,7 +112,7 @@ if __name__ == "__main__":
     verbose = args.verbose
 
     for f in args.inputs:
-        if verbose: print f
+        if verbose: print(f)
         try:
             parse_SU_file(f);
         except:
