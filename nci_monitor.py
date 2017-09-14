@@ -139,7 +139,7 @@ def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=No
     if pdf:
         outfile = "nci_{storagept}_{field}_{proj}_{y}.{q}.pdf".format(storagept=storagept,field=datafield,proj=project,y=year,q=quarter)
       
-    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=outfile, sort=sort)
+    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=outfile, sort=sort, delta=args.delta)
 
 def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
 
@@ -177,7 +177,7 @@ def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
       
     plot_dataframe(dp, type='line', ylabel=ylabel, title=title, ideal=ideal, outfile=outfile, legend=byuser)
 
-def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff=None, ideal=None, outfile=None, legend=True, sort=True):
+def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff=None, ideal=None, outfile=None, legend=True, sort=True, delta=False):
 
     if len(df.shape) > 1:
         # Sort rows by the value of the last row in each column. Only works with recent versions of pandas.
@@ -211,8 +211,9 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
 
     # Make sure y axis is always updated as we're overlaying new data
     plt.autoscale(enable=True,axis='y')
-    # Always snap bottom axis to zero, but not for --delta so keep in this block
-    ax.set_ylim(bottom=0.)
+    if not delta:
+        # Always snap bottom axis to zero, but not for --delta so keep in this block
+        ax.set_ylim(bottom=0.)
 
     monthsFmt = DateFormatter("%-d '%b")
     ax.xaxis.set_major_formatter(monthsFmt)
