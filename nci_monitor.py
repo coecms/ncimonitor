@@ -187,6 +187,10 @@ def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
 
 def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff=None, ideal=None, outfile=None, legend=True, sort=True, delta=False):
 
+    if any(d == 0 for d in df.shape):
+        print("No data to plot")
+        return
+    
     if len(df.shape) > 1:
         # Sort rows by the value of the last row in each column. Only works with recent versions of pandas.
         if sort: sort_table_by_last_row(df)
