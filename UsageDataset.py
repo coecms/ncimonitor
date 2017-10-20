@@ -266,7 +266,11 @@ class ProjectDataset(object):
         return self.db['SystemQueue'].find_one(system=system, queue=queue)
 
     def date2date(self, datestring):
-        return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
+
+        if type(datestring) == datetime.date:
+            return datestring
+        else:
+            return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
 
     def getstoragepoints(self, system, year, quarter):
         qstring = "SELECT storagepoint FROM SystemStorage WHERE system is '{}' AND year is '{}' AND quarter is '{}' GROUP BY storagepoint".format(system,year,quarter)
