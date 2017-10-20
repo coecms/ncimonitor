@@ -161,7 +161,12 @@ class ProjectDataset(object):
         ORDER BY Date"""
 
         # Pivot makes columns of all the individuals, rows are indexed by date
-        df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,start=startdate,end=enddate),self.db.executable).pivot_table(index='Date',columns='Name',fill_value=0)
+        try:
+            df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,start=startdate,end=enddate),self.db.executable).pivot_table(index='Date',columns='Name',fill_value=0)
+        except:
+            print("No usage data available")
+            return None
+
         # Get rid of the totsize labels in the multiindex
         df.columns = df.columns.get_level_values(1)
         # Convert date index from labels to datetime objects 
@@ -199,7 +204,12 @@ class ProjectDataset(object):
         ORDER BY Date"""
 
         # Pivot makes columns of all the individuals, rows are indexed by date
-        df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate), self.db.executable).pivot(index='Date',columns='Name')
+        try:
+            df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate), self.db.executable).pivot(index='Date',columns='Name')
+        except:
+            print("No data available for {}".format(storagept))
+            return None
+            
         # Get rid of the totsize labels in the multiindex
         df.columns = df.columns.get_level_values(1)
         # Convert date index from labels to datetime objects 

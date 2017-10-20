@@ -98,7 +98,12 @@ def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=No
     else:
         system = 'raijin'
 
-    dp = db.getstorage(year, quarter, storagept=storagept, datafield=datafield) / scale
+    dp = db.getstorage(year, quarter, storagept=storagept, datafield=datafield)
+
+    if dp is not None:
+        dp = dp / scale
+    else:
+        return
 
     if users is not None: dp = select_users(dp,users)
 
@@ -147,7 +152,10 @@ def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
 
     scale = 1000.
 
-    dp = dp / scale
+    if dp is None:
+        return
+    else:
+        dp = dp / scale
 
     title = "Usage for Project {} on {} ({}.{})".format(project,system,year,quarter)
     ylabel = "Compute resources (KSU)"
