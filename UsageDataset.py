@@ -205,7 +205,7 @@ class ProjectDataset(object):
 
         # Pivot makes columns of all the individuals, rows are indexed by date
         try:
-            df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate), self.db.executable).pivot(index='Date',columns='Name')
+            df = pd.read_sql_query(qstring.format(namefield=name_sql,datafield=datafield,table=table,start=startdate,end=enddate), self.db.executable).pivot_table(index='Date',columns='Name',fill_value=0)
         except:
             print("No data available for {}".format(storagept))
             return None
