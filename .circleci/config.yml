@@ -32,11 +32,11 @@ jobs:
             - checkout
 
             - run: |
-                conda build conda --python=${PYTHON_VER}
+                conda build -c coecms conda --python=${PYTHON_VER}
 
             - run: |
                 mkdir /artefacts
-                cp $(conda build -c coecms conda --python=${PYTHON_VER} --output) /artefacts
+                cp $(conda build conda --python=${PYTHON_VER} --output) /artefacts
 
             - persist_to_workspace:
                 root: /artefacts
