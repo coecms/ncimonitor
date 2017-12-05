@@ -82,7 +82,7 @@ def select_users(df,users):
 def sort_table_by_last_row(df):
     df.sort_values(df.last_valid_index(), axis=1, inplace=True, ascending=False)
 
-def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=None,pdf=False):
+def plot_storage(db,project,storagept,year,quarter,datafield,showtotal,cutoff=0,users=None,pdf=False):
 
     if datafield == 'size':
         # Scale sizes to GB
@@ -331,15 +331,15 @@ def main():
     
             if args.usage:
     
-                plot_usage(db,year,quarter,plot_by_user,total_grant,users,args.pdf)
+                plot_usage(db,project,year,quarter,plot_by_user,total_grant,users,args.pdf)
     
             if args.short:
     
-                plot_storage(db,'short',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
+                plot_storage(db,project,'short',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
     
             if args.gdata:
     
-                plot_storage(db,'gdata',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
+                plot_storage(db,project,'gdata',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
     
             if not args.noshow: plt.show()
 
