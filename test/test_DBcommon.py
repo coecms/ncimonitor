@@ -10,10 +10,7 @@ from numpy import arange
 
 import os
 
-# Find the python libraries we're testing
-sys.path.append('..')
-sys.path.append('.')
-from DBcommon import *
+from ncimonitor.DBcommon import *
 
 import datetime
 

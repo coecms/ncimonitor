@@ -41,8 +41,8 @@ import pandas as pd
 from getpass import getuser
 
 # from make_usage_db import *
-from UsageDataset import *
-from DBcommon import *
+from .UsageDataset import *
+from .DBcommon import *
 
 plt.style.use('ggplot')
 
@@ -82,7 +82,7 @@ def select_users(df,users):
 def sort_table_by_last_row(df):
     df.sort_values(df.last_valid_index(), axis=1, inplace=True, ascending=False)
 
-def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=None,pdf=False):
+def plot_storage(db,project,storagept,year,quarter,datafield,showtotal,cutoff=0,users=None,pdf=False, delta=False):
 
     if datafield == 'size':
         # Scale sizes to GB
@@ -112,7 +112,7 @@ def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=No
         return
 
     ideal = None; sort = True
-    if args.delta:
+    if delta:
         # Normalise by usage at beginning of the month
         dp = dp - dp.iloc[0,:].values
         # Select columns based on proscribed cutoff
@@ -144,9 +144,9 @@ def plot_storage(db,storagept,year,quarter,datafield,showtotal,cutoff=0,users=No
     if pdf:
         outfile = "nci_{storagept}_{field}_{proj}_{y}.{q}.pdf".format(storagept=storagept,field=datafield,proj=project,y=year,q=quarter)
       
-    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=outfile, sort=sort, delta=args.delta)
+    plot_dataframe(dp, type=type, ylabel=ylabel, title=title, cutoff=cutoff, ideal=ideal, outfile=outfile, sort=sort, delta=delta)
 
-def plot_usage(db,year,quarter,byuser,total,users,pdf=False):
+def plot_usage(db,project,system,year,quarter,byuser,total,users,pdf=False):
 
     dp = db.getusage(year, quarter)
 
@@ -200,6 +200,7 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
     else:
         cm = ListedColormap(brewer_qualitative[:1], "myhues")
 
+    figsize=(12,10)
     fig = plt.figure(figsize=figsize)
 
     ax = fig.add_axes([0.1, 0.15, 0.7, 0.7, ])
@@ -240,7 +241,7 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
         fig.savefig(outfile)
 
 
-if __name__ == "__main__":
+def main():
 
     username = getuser()
 
@@ -269,7 +270,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     plot_by_user = False
 
-    figsize=(12,10)
 
     # If we don't define any of short, usage, or gdata default to all being true
     if not(args.short or args.usage or args.gdata):
@@ -331,14 +331,17 @@ if __name__ == "__main__":
     
             if args.usage:
     
-                plot_usage(db,year,quarter,plot_by_user,total_grant,users,args.pdf)
+                plot_usage(db,project,system,year,quarter,plot_by_user,total_grant,users,args.pdf)
     
             if args.short:
     
-                plot_storage(db,'short',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
+                plot_storage(db,project,'short',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf, delta=args.delta)
     
             if args.gdata:
     
-                plot_storage(db,'gdata',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
+                plot_storage(db,project,'gdata',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf, delta=args.delta)
     
             if not args.noshow: plt.show()
+
+if __name__ == "__main__":
+    main()

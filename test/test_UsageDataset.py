@@ -11,36 +11,18 @@ from numpy import arange
 
 import os
 
-# Find the python libraries we're testing
-sys.path.append('..')
-sys.path.append('.')
-from UsageDataset import *
-# from nci_monitor import *
-from DBcommon import datetoyearquarter
+from ncimonitor.UsageDataset import *
+from ncimonitor.DBcommon import datetoyearquarter
 
 import datetime
 
 dbfileprefix = '.'
 
-def silentrm(filename):
-    try:
-        os.remove(filename)
-    except OSError:
-        pass
-
 @pytest.fixture(scope='session')
 def db():
     project = 'xx00'
-    dbfile = "usage_{}.db".format(project)
-    print(dbfile)
-    silentrm(dbfile)
-    dbfile = "sqlite:///"+dbfile
+    dbfile = "sqlite:///:memory:"
     return ProjectDataset(project,dbfile)
-
-def test_silentrm():
-    # Call it twice in case it it existed first time
-    silentrm('bogus_very_unlikely_to_exist_file')
-    silentrm('bogus_very_unlikely_to_exist_file')
 
 def test_adduser(db):
     user = 'wxs1984'; fullname = 'Winston Smith'

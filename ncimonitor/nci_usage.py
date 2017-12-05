@@ -141,4 +141,5 @@ def main():
     db = usagedb(args.project, args.year)
     args.func(db, args)
 
-main()
+if __name__ == '__main__':
+    main()

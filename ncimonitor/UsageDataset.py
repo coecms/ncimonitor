@@ -45,7 +45,7 @@ class ProjectDataset(object):
                 except KeyError:
                     fullname = username
             data = dict(username=username, fullname=fullname)
-            self.db['User'].upsert(data, data.keys())
+            self.db['User'].upsert(data, list(data.keys()))
 
     def addquarter(self, year, quarter, startdate, enddate):
         data = dict(year=year, quarter=quarter, start_date=startdate, end_date=enddate)
