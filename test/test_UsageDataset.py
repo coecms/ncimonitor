@@ -11,12 +11,8 @@ from numpy import arange
 
 import os
 
-# Find the python libraries we're testing
-sys.path.append('..')
-sys.path.append('.')
-from UsageDataset import *
-# from nci_monitor import *
-from DBcommon import datetoyearquarter
+from ncimonitor.UsageDataset import *
+from ncimonitor.DBcommon import datetoyearquarter
 
 import datetime
 
