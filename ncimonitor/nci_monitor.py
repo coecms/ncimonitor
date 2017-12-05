@@ -240,7 +240,7 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
         fig.savefig(outfile)
 
 
-if __name__ == "__main__":
+def main():
 
     username = getuser()
 
@@ -342,3 +342,6 @@ if __name__ == "__main__":
                 plot_storage(db,'gdata',year,quarter,datafield,args.showtotal,cutoff,users,args.pdf)
     
             if not args.noshow: plt.show()
+
+if __name__ == "__main__":
+    main()
