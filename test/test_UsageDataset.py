@@ -18,25 +18,11 @@ import datetime
 
 dbfileprefix = '.'
 
-def silentrm(filename):
-    try:
-        os.remove(filename)
-    except OSError:
-        pass
-
 @pytest.fixture(scope='session')
 def db():
     project = 'xx00'
-    dbfile = "usage_{}.db".format(project)
-    print(dbfile)
-    silentrm(dbfile)
-    dbfile = "sqlite:///"+dbfile
+    dbfile = "sqlite:///:memory:"
     return ProjectDataset(project,dbfile)
-
-def test_silentrm():
-    # Call it twice in case it it existed first time
-    silentrm('bogus_very_unlikely_to_exist_file')
-    silentrm('bogus_very_unlikely_to_exist_file')
 
 def test_adduser(db):
     user = 'wxs1984'; fullname = 'Winston Smith'
