@@ -1,0 +1,38 @@
+package:
+    name: ncimonitor
+    version: {{ GIT_DESCRIBE_TAG}}
+
+build:
+    number: {{ GIT_DESCRIBE_NUMBER }}
+
+source:
+    git_url: ../
+
+requirements:
+    build:
+        - python
+    run:
+        - python
+        - numpy
+        - pandas
+        - dataset
+
+build:
+    script: python setup.py install
+#    entry_points:
+#        - ncimonitor=ncimonitor.nci_monitor:main
+#        - nciusage=ncimonitor.nci_usage:main
+
+test:
+    imports:
+        - ncimonitor
+    requires:
+        - pytest
+    source_files:
+        - conftest.py
+        - test/**
+    commands:
+        - py.test
+
+about:
+    home: https://github.com/coecms/ncimonitor
