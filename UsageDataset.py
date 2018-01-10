@@ -212,8 +212,15 @@ class ProjectDataset(object):
             
         # Get rid of the totsize labels in the multiindex
         df.columns = df.columns.get_level_values(1)
+
         # Convert date index from labels to datetime objects 
         df.index = pd.to_datetime(df.index, format="%Y-%m-%d")
+
+        # Make a new index from the beginning of the quarter
+        newidx = pd.date_range(startdate,df.index[-1])
+
+        # Reindex to beginning of quarter in case we're missing values from the beginning of the quarter
+        df = df.reindex(newidx, method='backfill')
 
         return df
 
