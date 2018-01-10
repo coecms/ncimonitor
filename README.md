@@ -9,8 +9,8 @@ To use:
 
 ```bash
 module purge
-module use ~access/modules
-module load ncimonitor
+module use /g/data3/hh5/public/modules
+module load conda/analysis27
 ```
 
 Basic usage message:
