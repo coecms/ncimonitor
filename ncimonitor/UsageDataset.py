@@ -215,6 +215,12 @@ class ProjectDataset(object):
         # Convert date index from labels to datetime objects 
         df.index = pd.to_datetime(df.index, format="%Y-%m-%d")
 
+        # Make a new index from the beginning of the quarter
+        newidx = pd.date_range(startdate,df.index[-1])
+
+        # Reindex to beginning of quarter in case we're missing values from the beginning of the quarter
+        df = df.reindex(newidx, method='backfill')
+
         return df
 
     def getusergdata(self, year, quarter, username):

@@ -228,14 +228,17 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
         # Always snap bottom axis to zero, but not for --delta so keep in this block
         ax.set_ylim(bottom=0.)
 
-    monthsFmt = DateFormatter("%-d '%b")
-    ax.xaxis.set_major_formatter(monthsFmt)
+    # Commented out the fancy formatting as this didn't play well with the pandas
+    # plot method. Can revert to this at a later date plt.plot() is called directly
 
-    xtick_locator = AutoDateLocator()
-    xtick_formatter = AutoDateFormatter(xtick_locator)
-    ax.xaxis.set_major_locator(xtick_locator)
+    # monthsFmt = DateFormatter("%-d '%b")
+    # ax.xaxis.set_major_formatter(monthsFmt)
 
-    fig.autofmt_xdate()
+    # xtick_locator = AutoDateLocator()
+    # xtick_formatter = AutoDateFormatter(xtick_locator)
+    # ax.xaxis.set_major_locator(xtick_locator)
+
+    # fig.autofmt_xdate()
 
     if outfile is not None:
         fig.savefig(outfile)
