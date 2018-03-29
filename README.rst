@@ -3,11 +3,13 @@ ncimonitor
 
 Extended usage information for the NCI system raijin.
 
-.. |Build Status| image:: https://travis-ci.org/coecms/ncimonitor.svg?branch=master
+.. image:: https://travis-ci.org/coecms/ncimonitor.svg?branch=master
    :target: https://travis-ci.org/coecms/ncimonitor
-.. |codecov.io| image:: https://codecov.io/github/coecms/ncimonitor/coverage.svg?branch=master
+.. image:: https://circleci.com/gh/coecms/ncimonitor.svg?style=shield
+  :target: https://circleci.com/gh/coecms/ncimonitor
+.. https://codecov.io/github/coecms/ncimonitor/coverage.svg?branch=master
    :target: https://codecov.io/github/coecms/ncimonitor?branch=master
-.. |Code Health| image:: https://landscape.io/github/coecms/ncimonitor/master/landscape.svg?style=flat
+.. image:: https://landscape.io/github/coecms/ncimonitor/master/landscape.svg?style=flat
    :target: https://landscape.io/github/coecms/ncimonitor/master
 
 To use:
