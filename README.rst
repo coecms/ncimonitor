@@ -57,7 +57,7 @@ You can ask for multiple projects, e.g.
     ncimonitor -P zz55 yy99 qq00
 
 If you just want to see just the change in short file usage since the
-start of the quarter (doesn’t affect SU usage):
+start of the quarter (doesn't affect SU usage):
 
 .. code:: bash
 
@@ -84,7 +84,7 @@ against a target
 
 To save PDF copies of plots, use ``--pdf``. To suppress viewing plots on
 the default display device use ``--noshow``. Combining these two options
-will produce only “hard” copies:
+will produce only hard copies:
 
 ::
 
