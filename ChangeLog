@@ -1,0 +1,105 @@
+CHANGES
+=======
+
+* Made entry points for DB updating scripts in setup.py and corresponding functions in scripts
+* Added fullname output to nci\_usage, and an option for separator to crudely create csv output
+
+0.3.2
+-----
+
+* Updated README with current module load instructions
+
+0.3.1
+-----
+
+*     Reindex storage dataframes to ensure there are values from the start     of each quarter
+
+0.3
+---
+
+* Fix variable scoping
+* Put the flag on the wrong line
+* Add coecms channel for dataset package
+* Project should be an argument
+* Add conda build infrastructure
+* Python3 compat
+* Use a in-memory database
+* Use package
+* Add setup.py packaging
+* Added default value into size table when pivoting as NaN would appear if a user deleted all their storage in a project
+* Check for no data to plot. Triggered sometimes with delta plots when there is no change
+* Check for data lookup errors and don't try and plot
+* Allow datetime objects in database when they creep in
+* Add a command to list usage in the terminal
+
+0.2
+---
+
+* Delta plots were being chopped off below zero. Fixed
+* Python 3 print statements fixed in make scripts
+* Removed spurious pip install and 3.5 build (which had dependency issues)
+* Incorrect name for conda sqlite package
+* Switched to conda to get updated version of sqlite3
+* Specified trusty dist for travis to get sqlite3 version which supports printf
+* Added tests for pandas interface. Added pandas dependency to travis
+* Fixed tests that were assuming dates returned from DB were strings not datetime objects
+* Made returned data frame have proper dates in the index. Fixed logic for plotting ideal usage. Made long SQL queries multiline to make more readable
+* Reinstated pdf output. Added checks for empty dataframes and warning
+* Only plot if db connection successful. Ensure ideal usage plotted even if users specified
+* Reinstated ability to plot data from specific users
+* Working version with refactored code using pandas dataframes
+* Initial stages of nci\_monitor.py rewrite. Working but will not refactor
+* Added pandas data retrieval. More generic and powerful
+* Added licence to nci\_monitor.py
+* Changes to DBcommon.py: python3 support, added license, fixed bug in datetoyearquarter with python3
+* getstoragepoints working
+* Beginning adding gdata data extraction
+* BUG: Change in formatting led to project usage being lost. Fixed
+* Bug : parsing usage like 0B was incorrectly handled. Fixed
+* Bug: make\_SU\_DB.py : was storing SUs not KSUs. Fixed
+* BUG: nci\_monitor.py : axes referenced before being created. Fixed
+* Parsing size in DB module was wrong, and also broke tests. Fixed that up and reverted tests
+* Updated usage parsing to support units other than KSU. Made unit testing more robust and general. Added tests for unit parsing
+* Fixed logic errors when checking if there was data to plot
+* Made full names default, added --username option for old behaviour. Added -n option to limit number of users plotted
+* Made figure bigger and reduced legend fontsize to fit more users in legend
+* Added --shorttotal option to show short file system limit + test
+* Fixed typo in help message
+* Broke tests with change to API. Fixed
+* Fixed gdata upload. Added storagept key, and parsing the filename for storagept
+* Big Fix. Cast strings to floats before loading into DB. This fixed error with not sorting by usage correctly when returning SU users
+* Delta short usage also needs filling, otherwise deleted use directories don't show up as negative on the graph
+* Filling in short usage algorithm was leading to erroneous result when a user's directory was removed and had no data. Now just fill with zeroes
+* Included year and quarter in title, as removed year them from axis
+* Improved date formatting
+* Restrict coverage testing to core module
+* Add some more badges
+* Test silentrm
+* Slightly bogus commit, as I stuffed up with a forced push
+* From codecov analysis, remove duplicate test and squawked when file remove failed
+* Fixed error, wasn't saving correct figure for short
+* Added hardcopy output option (--pdf)
+* Put proper codecov hook at the end
+* Added custom codecov invocation
+* Added codecov hooks to travis CI
+* Added travis CI badge
+* Replaced DISTINCT calls with groupby, which are supposed to work with ordering by an un-selected field
+* Checking default sqlite3 version
+* Removed dependency on matplotlib
+* Specified test directory
+* Removed unecessary packages
+* Added dataset install
+* Added directories to pythonpath
+* Set pythonpath correctly in travis.yml
+* Try py.test without specifying test directory
+* Trying another trick to get py.test to see modules
+* Ugly hack to get py.test to work, added empty conftest.py
+* Added empty \_\_init\_\_.py to fix travis path problem
+* Fixed travis script command
+* Added travis
+* Create README.md
+* Unit test, using pytest, added
+* Added explicit scale when retrieving SU usage. Added some more class functions to support unit tests
+* Added DBcommon.py. Deleted UsageDB.py -- old file accidentally included
+* Added nci\_monitor
+* Initial commit of dataset approach
