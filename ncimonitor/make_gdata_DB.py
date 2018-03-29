@@ -95,7 +95,7 @@ def main(args):
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_SU_file(f);
+            parse_gdata_file(f);
         except:
             raise
         else:
