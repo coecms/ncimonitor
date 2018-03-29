@@ -101,13 +101,8 @@ def parse_SU_file(filename):
                 print(year, quarter, systemname, storagept, grant.upper(), parse_size(grant.upper()))
                 db.addsystemstorage(systemname,storagept,year,quarter,parse_size(grant.upper()),parse_inodenum(igrant))
 
-if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Parse usage dump files")
-    parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
-    parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
-    parser.add_argument("inputs", help="dumpfiles", nargs='*')
-    args = parser.parse_args()
+def main(args):
 
     verbose = args.verbose
 
@@ -119,3 +114,33 @@ if __name__ == "__main__":
             raise
         else:
             archive(f)
+
+def parse_args(args):
+    """
+    Parse arguments given as list (args)
+    """
+    parser = argparse.ArgumentParser(description="Parse usage dump files")
+    parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
+    parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
+    parser.add_argument("inputs", help="dumpfiles", nargs='+')
+
+    return parser.parse_args()
+
+def main_parse_args(args):
+    """
+    Call main with list of arguments. Callable from tests
+    """
+    # Must return so that check command return value is passed back to calling routine
+    # otherwise py.test will fail
+    return main(parse_args(args))
+
+def main_argv():
+    """
+    Call main and pass command line arguments. This is required for setup.py entry_points
+    """
+    main_parse_args(sys.argv[1:])
+
+if __name__ == "__main__":
+
+    main_argv()
+

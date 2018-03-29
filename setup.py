@@ -25,6 +25,9 @@ setup(
             'console_scripts': [
                 'ncimonitor=ncimonitor.nci_monitor:main',
                 'nciusage=ncimonitor.nci_usage:main',
+                'make_SU_DB=ncimonitor.make_SU_DB:main_argv',
+                'make_short_DB=ncimonitor.make_short_DB:main_argv',
+                'make_gdata_DB=ncimonitor.make_gdata_DB:main_argv',
                 ]
             },
         )

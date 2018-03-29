@@ -24,6 +24,7 @@ import argparse
 import pwd
 import datetime
 import os
+import sys
 import re
 import shutil
 from UsageDataset import *
@@ -76,21 +77,45 @@ def parse_short_file(filename):
             except:
                 break
 
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description="Parse short file dumps")
-    parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
-    parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
-    parser.add_argument("inputs", help="dumpfiles", nargs='*')
-    args = parser.parse_args()
+def main(args):
 
     verbose = args.verbose
 
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_short_file(f);
+            parse_SU_file(f);
         except:
             raise
         else:
             archive(f)
+
+def parse_args(args):
+    """
+    Parse arguments given as list (args)
+    """
+    parser = argparse.ArgumentParser(description="Parse short file dumps")
+    parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
+    parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
+    parser.add_argument("inputs", help="dumpfiles", nargs='+')
+
+    return parser.parse_args()
+
+def main_parse_args(args):
+    """
+    Call main with list of arguments. Callable from tests
+    """
+    # Must return so that check command return value is passed back to calling routine
+    # otherwise py.test will fail
+    return main(parse_args(args))
+
+def main_argv():
+    """
+    Call main and pass command line arguments. This is required for setup.py entry_points
+    """
+    main_parse_args(sys.argv[1:])
+
+if __name__ == "__main__":
+
+    main_argv()
+
