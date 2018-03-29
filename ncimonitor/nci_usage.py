@@ -44,7 +44,7 @@ class usagedb(object):
         if date is None:
             date = datetime.date.today() - datetime.timedelta(days=1)
         q = self.c.execute("""
-            SELECT SUM(size), user.fullname
+            SELECT SUM(size), user.username, user.fullname
             FROM shortusage
             JOIN user ON shortusage.user = user.id
             WHERE shortusage.scandate = ?
@@ -60,7 +60,7 @@ class usagedb(object):
         if date is None:
             date = datetime.date.today() - datetime.timedelta(days=1)
         q = self.c.execute("""
-            SELECT SUM(size), user.fullname
+            SELECT SUM(size), user.username, user.fullname
             FROM gdatausage
             JOIN user ON gdatausage.user = user.id
             WHERE gdatausage.scandate = ?
@@ -76,7 +76,7 @@ class usagedb(object):
         if date is None:
             date = datetime.date.today() - datetime.timedelta(days=1)
         q = self.c.execute("""
-            SELECT SUM(inodes), user.fullname
+            SELECT SUM(inodes), user.username, user.fullname
             FROM shortusage
             JOIN user ON shortusage.user = user.id
             WHERE shortusage.scandate = ?
@@ -92,7 +92,7 @@ class usagedb(object):
         if date is None:
             date = datetime.date.today() - datetime.timedelta(days=1)
         q = self.c.execute("""
-            SELECT SUM(inodes), user.fullname
+            SELECT SUM(inodes), user.username, user.fullname
             FROM gdatausage
             JOIN user ON gdatausage.user = user.id
             WHERE gdatausage.scandate = ?
@@ -102,26 +102,31 @@ class usagedb(object):
         return q
 
 def print_short(db, args):
-    for size, name in db.short(count=args.count):
-        print("% 7d GiB\t %s"%(size/1024**3, name))
+    sep = args.separator
+    for size, username, name in db.short(count=args.count):
+        print("% 7d GiB%s%s%s%s"%(size/1024**3, sep, username, sep, name))
 
 def print_ishort(db, args):
-    for count, name in db.ishort(count=args.count):
-        print("%.2e\t %s"%(count, name))
+    sep = args.separator
+    for count, username, name in db.ishort(count=args.count):
+        print("%.2e%s%s%s%s"%(count, sep, username, sep, name))
 
 def print_gdata(db, args):
-    for size, name in db.gdata(count=args.count):
-        print("% 7d GiB\t %s"%(size/1024**3, name))
+    sep = args.separator
+    for size, username, name in db.gdata(count=args.count):
+        print("% 7d GiB%s%s%s%s"%(size/1024**3, sep, username, sep, name))
 
 def print_igdata(db, args):
-    for count, name in db.igdata(count=args.count):
-        print("%.2e\t %s"%(count, name))
+    sep = args.separator
+    for count, username, name in db.igdata(count=args.count):
+        print("%.2e%s%s%s%s"%(count, sep, username, sep, name))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--project', '-P', default=os.environ['PROJECT'])
     parser.add_argument('--year', default=datetime.date.today().year, type=int)
     parser.add_argument('--count', default=10, type=int)
+    parser.add_argument('--separator','-s', default='\t', type=str)
 
     subparsers = parser.add_subparsers(help='Commands')
     short = subparsers.add_parser('short', help='/short usage')
