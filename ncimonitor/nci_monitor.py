@@ -41,8 +41,8 @@ import pandas as pd
 from getpass import getuser
 
 # from make_usage_db import *
-from .UsageDataset import *
-from .DBcommon import *
+from ncimonitor.UsageDataset import *
+from ncimonitor.DBcommon import *
 
 plt.style.use('ggplot')
 
@@ -210,12 +210,12 @@ def plot_dataframe(df, type='line', xlabel=None, ylabel=None, title=None, cutoff
     if ylabel is not None: ax.set_ylabel(ylabel)
 
     if type == 'area':
-        df.plot.area(ax=ax,use_index=True, colormap=cm) #, legend='reverse')#.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        df.plot.area(ax=ax,use_index=True, colormap=cm, xlim=(df.index[0],df.index[-1]))
         if legend:
             handles, labels = ax.get_legend_handles_labels()
             ax.legend(reversed(handles), reversed(labels), loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
     else:
-        df.plot(ax=ax,use_index=True, colormap=cm) #, legend=legend) #.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        df.plot(ax=ax, use_index=True, colormap=cm, xlim=(df.index[0],df.index[-1]))
         if legend: ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize='small')
 
     if ideal is not None:
