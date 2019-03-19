@@ -127,8 +127,8 @@ class UserInfo(usagedb):
 def output_info(GdataInfo, MdssInfo, db1, date, count, project):
 
     print("Project: {0}".format(project))
-    print("Gdata: {used:7.0f} GiB/{grant:7.0f} GiB, {perc_round}".format(used=GdataInfo['used']/BtoGiB, grant=GdataInfo['grant']/BtoGiB, perc_round=round(GdataInfo['perc'])))
-    print("Mdss: {used:7.0f} GiB/{grant:7.0f} GiB, {perc_round}".format(used=MdssInfo['used']/BtoGiB, grant=MdssInfo['grant']/BtoGiB, perc_round=round(MdssInfo['perc'])))    
+    print("Gdata: {used:7.0f} GiB/{grant:7.0f} GiB, {perc_round}%".format(used=GdataInfo['used']/BtoGiB, grant=GdataInfo['grant']/BtoGiB, perc_round=round(GdataInfo['perc'])))
+    print("Mdss: {used:7.0f} GiB/{grant:7.0f} GiB, {perc_round}%".format(used=MdssInfo['used']/BtoGiB, grant=MdssInfo['grant']/BtoGiB, perc_round=round(MdssInfo['perc'])))    
     print("List of the {} major users, CMS person is responsible to decide who needs to be in the report".format(count))
     print("Perc.\t Usage \t Login \t Name")
     db1.print_gdata_perc('\t', count, GdataInfo['grant'], date=date)
