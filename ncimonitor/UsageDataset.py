@@ -314,3 +314,39 @@ class ProjectDataset(object):
         if q is None:
             return (None,None)
         return float(q['grant']),float(q['igrant'])
+
+
+    def top_usage(self, storagepoint, count=10, date=None, measure='size'):
+        """
+        Return the top ``count`` users according to ``measure`` (either 'size'
+        or 'inodes') on ``storagepoint`` at ``date``
+
+        Due to the NCI scanning process ``date`` should be at least one day in
+        the past
+
+        Returns columns (measure, username, fullname)
+        """
+
+        if storagepoint not in ['short', 'gdata']:
+            raise Exception(f"Unexpected storagepoint '{storagepoint}'")
+
+        if measure not in ['size', 'inodes']:
+            raise Exception(f"Unexpected measure '{measure}'")
+
+        if date is None:
+            # Default to one day in the past
+            date = datetime.date.today() - datetime.timedelta(days=1)
+
+        q = self.db.query(f"""
+            SELECT
+                SUM({measure}) AS measure,
+                user.username AS username,
+                user.fullname AS fullname
+            FROM {storagepoint}usage
+            JOIN user ON {storagepoint}usage.user = user.id
+            WHERE {storagepoint}usage.scandate = :date
+            GROUP BY user.id ORDER BY sum({measure}) DESC
+            LIMIT :count
+        """, date=date, count=count)
+
+        return q
