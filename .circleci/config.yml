@@ -12,17 +12,17 @@ jobs:
 
             - run: |
                 wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O conda.sh
-                bash conda.sh -b -p /conda
-                /conda/bin/conda config --system --add channels conda-forge
-                /conda/bin/conda config --system --add channels coecms
-                /conda/bin/conda install --yes conda-build conda-verify
+                bash conda.sh -b -p ~/conda
+                ~/conda/bin/conda config --system --add channels conda-forge
+                ~/conda/bin/conda config --system --add channels coecms
+                ~/conda/bin/conda install --yes conda-build conda-verify
 
             - run: |
-                /conda/bin/conda build -c coecms conda --python=${PYTHON_VER}
+                ~/conda/bin/conda build -c coecms conda --python=${PYTHON_VER}
 
             - run: |
                 mkdir /artefacts
-                cp $(/conda/bin/conda build conda --python=${PYTHON_VER} --output) /artefacts
+                cp $(~/conda/bin/conda build conda --python=${PYTHON_VER} --output) /artefacts
 
             - persist_to_workspace:
                 root: /artefacts
