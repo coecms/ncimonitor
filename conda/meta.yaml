@@ -3,7 +3,9 @@ package:
     version: {{ GIT_DESCRIBE_TAG}}
 
 build:
+    noarch: python
     number: {{ GIT_DESCRIBE_NUMBER }}
+    script: python -m pip install --no-deps --ignore-installed .
 
 source:
     git_url: ../
@@ -13,16 +15,10 @@ requirements:
         - python
         - pbr
     run:
-        - python
+        - python>3.5
         - numpy
         - pandas
         - dataset
-
-build:
-    script: python setup.py install
-#    entry_points:
-#        - ncimonitor=ncimonitor.nci_monitor:main
-#        - nciusage=ncimonitor.nci_usage:main
 
 test:
     imports:
