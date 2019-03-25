@@ -20,7 +20,7 @@ limitations under the License.
 
 from __future__ import print_function
 
-from dataset import *
+from dataset import connect
 import datetime
 from pwd import getpwnam
 import pandas as pd

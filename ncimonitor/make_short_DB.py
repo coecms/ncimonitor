@@ -27,8 +27,8 @@ import os
 import sys
 import re
 import shutil
-from UsageDataset import *
-from DBcommon import extract_num_unit, parse_size, mkdir, archive, datetoyearquarter
+from .UsageDataset import *
+from .DBcommon import extract_num_unit, parse_size, mkdir, archive, datetoyearquarter
 
 databases = {}
 dbfileprefix = '.'
