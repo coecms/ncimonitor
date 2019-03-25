@@ -11,6 +11,9 @@ jobs:
             - checkout
 
             - run: |
+                conda update --all --yes
+
+            - run: |
                 conda build -c coecms conda --python=${PYTHON_VER}
 
             - run: |
