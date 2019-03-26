@@ -316,15 +316,12 @@ class ProjectDataset(object):
         return float(q['grant']),float(q['igrant'])
 
 
-    def top_usage(self, storagepoint, count=10, date=None, measure='size'):
+    def top_usage(self, year, quarter, storagepoint, measure='size', count=10):
         """
         Return the top ``count`` users according to ``measure`` (either 'size'
-        or 'inodes') on ``storagepoint`` at ``date``
+        or 'inodes') on ``storagepoint`` for ``year`` and ``quarter``
 
-        Due to the NCI scanning process ``date`` should be at least one day in
-        the past
-
-        Returns columns (measure, username, fullname)
+        Returns pandas dataframe (fullname (username), usage)
         """
 
         if storagepoint not in ['short', 'gdata']:
@@ -333,20 +330,11 @@ class ProjectDataset(object):
         if measure not in ['size', 'inodes']:
             raise Exception(f"Unexpected measure '{measure}'")
 
-        if date is None:
-            # Default to one day in the past
-            date = datetime.date.today() - datetime.timedelta(days=1)
+        scale = 1
+        if measure == 'size':
+            scale = 1024**3 
 
-        q = self.db.query(f"""
-            SELECT
-                SUM({measure}) AS measure,
-                user.username AS username,
-                user.fullname AS fullname
-            FROM {storagepoint}usage
-            JOIN user ON {storagepoint}usage.user = user.id
-            WHERE {storagepoint}usage.scandate = :date
-            GROUP BY user.id ORDER BY sum({measure}) DESC
-            LIMIT :count
-        """, date=date, count=count)
-
-        return q
+        return self.getstorage(year, 
+                               quarter, 
+                               storagept=storagepoint, 
+                               datafield=measure).ix[-1].sort_values(ascending=False).head(count).divide(scale)

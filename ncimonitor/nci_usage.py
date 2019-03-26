@@ -22,54 +22,47 @@ import datetime
 import argparse
 import os
 from .UsageDataset import ProjectDataset
+from .DBcommon import datetoyearquarter
 
 
-def print_short(db, args):
-    sep = args.separator
-    for row in db.top_usage('short', measure='size', count=args.count):
-        print("% 7d GiB%s%s%s%s"%(row['measure']/1024**3, sep, row['username'], sep, row['fullname']))
-
-def print_ishort(db, args):
-    sep = args.separator
-    for row in db.top_usage('short', measure='inodes', count=args.count):
-        print("%.2e%s%s%s%s"%(row['measure'], sep, row['username'], sep, row['fullname']))
-
-def print_gdata(db, args):
-    sep = args.separator
-    for row in db.top_usage('gdata', measure='size', count=args.count):
-        print("% 7d GiB%s%s%s%s"%(row['measure']/1024**3, sep, row['username'], sep, row['fullname']))
-
-def print_igdata(db, args):
-    sep = args.separator
-    for row in db.top_usage('gdata', measure='inodes', count=args.count):
-        print("%.2e%s%s%s%s"%(row['measure'], sep, row['username'], sep, row['fullname']))
+def print_usage(db, year, quarter, args):
+    print(db.top_usage(year, 
+                       quarter, 
+                       args.storagepoint, 
+                       args.measure, 
+                       args.count).to_string(float_format=args.format))
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--project', '-P', default=os.environ['PROJECT'])
-    parser.add_argument('--year', default=datetime.date.today().year, type=int)
+    parser.add_argument('--period', '-p', type=str)
     parser.add_argument('--count', default=10, type=int)
     parser.add_argument('--separator','-s', default='\t', type=str)
 
     subparsers = parser.add_subparsers(help='Commands')
     short = subparsers.add_parser('short', help='/short usage')
-    short.set_defaults(func=print_short)
+    short.set_defaults(measure='size', storagepoint='short', format="%.0f GB")
 
     gdata = subparsers.add_parser('gdata', help='/g/data usage')
-    gdata.set_defaults(func=print_gdata)
+    gdata.set_defaults(measure='size', storagepoint='gdata', format="%.0f GB")
 
     ishort = subparsers.add_parser('ishort', help='/short inodes')
-    ishort.set_defaults(func=print_ishort)
+    ishort.set_defaults(measure='inodes', storagepoint='short', format="%i")
 
     igdata = subparsers.add_parser('igdata', help='/g/data inodes')
-    igdata.set_defaults(func=print_igdata)
+    igdata.set_defaults(measure='inodes', storagepoint='gdata', format="%i")
 
     args = parser.parse_args()
 
-    path = 'sqlite:////short/public/aph502/.data/usage_%s_%s.db'%(args.project, args.year)
+    if args.period is not None:
+        year, quarter = args.period.split(".")
+    else:
+        year, quarter = datetoyearquarter(datetime.datetime.now())
+
+    path = 'sqlite:////short/public/aph502/.data/usage_%s_%s.db'%(args.project, year)
     db = ProjectDataset(args.project, path)
 
-    args.func(db, args)
+    print_usage(db, year, quarter, args)
 
 if __name__ == '__main__':
     main()
