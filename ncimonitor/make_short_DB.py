@@ -79,8 +79,6 @@ def parse_short_file(filename):
 
 def main(args):
 
-    import pdb; pdb.set_trace()
-
     verbose = args.verbose
 
     for f in args.inputs:
