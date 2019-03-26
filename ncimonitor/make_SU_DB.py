@@ -29,8 +29,8 @@ from math import log
 import re
 import gzip
 import shutil
-from UsageDataset import *
-from DBcommon import extract_num_unit, parse_size, mkdir, archive, parse_inodenum
+from .UsageDataset import *
+from .DBcommon import extract_num_unit, parse_size, mkdir, archive, parse_inodenum
 
 databases = {}
 dbfileprefix = '.'

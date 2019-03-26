@@ -18,108 +18,31 @@ limitations under the License.
 """
 from __future__ import print_function
 
-import sqlite3
 import datetime
 import argparse
 import os
+from .UsageDataset import ProjectDataset
 
-class usagedb(object):
-    def __init__(self, project, year=datetime.date.today().year):
-        """
-        Connect to a usage database
-        """
-        path = '/short/public/aph502/.data/usage_%s_%s.db'%(project, year)
-        self.c = sqlite3.connect(path)
-
-    def debug(self):
-        """
-        Enable printing out each sql call
-        """
-        self.c.set_trace_callback(print)
-
-    def short(self, count=10, date=None):
-        """
-        Print the top /short users
-        """
-        if date is None:
-            date = datetime.date.today() - datetime.timedelta(days=1)
-        q = self.c.execute("""
-            SELECT SUM(size), user.username, user.fullname
-            FROM shortusage
-            JOIN user ON shortusage.user = user.id
-            WHERE shortusage.scandate = ?
-            GROUP BY user.id ORDER BY sum(size) DESC
-            LIMIT ?;
-        """, (date, count))
-        return q
-
-    def gdata(self, count=10, date=None):
-        """
-        Print the top /g/data users
-        """
-        if date is None:
-            date = datetime.date.today() - datetime.timedelta(days=1)
-        q = self.c.execute("""
-            SELECT SUM(size), user.username, user.fullname
-            FROM gdatausage
-            JOIN user ON gdatausage.user = user.id
-            WHERE gdatausage.scandate = ?
-            GROUP BY user.id ORDER BY sum(size) DESC
-            LIMIT ?;
-        """, (date, count))
-        return q
-
-    def ishort(self, count=10, date=None):
-        """
-        Print the top /short users
-        """
-        if date is None:
-            date = datetime.date.today() - datetime.timedelta(days=1)
-        q = self.c.execute("""
-            SELECT SUM(inodes), user.username, user.fullname
-            FROM shortusage
-            JOIN user ON shortusage.user = user.id
-            WHERE shortusage.scandate = ?
-            GROUP BY user.id ORDER BY sum(inodes) DESC
-            LIMIT ?;
-        """, (date, count))
-        return q
-
-    def igdata(self, count=10, date=None):
-        """
-        Print the top /g/data users
-        """
-        if date is None:
-            date = datetime.date.today() - datetime.timedelta(days=1)
-        q = self.c.execute("""
-            SELECT SUM(inodes), user.username, user.fullname
-            FROM gdatausage
-            JOIN user ON gdatausage.user = user.id
-            WHERE gdatausage.scandate = ?
-            GROUP BY user.id ORDER BY sum(inodes) DESC
-            LIMIT ?;
-        """, (date, count))
-        return q
 
 def print_short(db, args):
     sep = args.separator
-    for size, username, name in db.short(count=args.count):
-        print("% 7d GiB%s%s%s%s"%(size/1024**3, sep, username, sep, name))
+    for row in db.top_usage('short', measure='size', count=args.count):
+        print("% 7d GiB%s%s%s%s"%(row['measure']/1024**3, sep, row['username'], sep, row['fullname']))
 
 def print_ishort(db, args):
     sep = args.separator
-    for count, username, name in db.ishort(count=args.count):
-        print("%.2e%s%s%s%s"%(count, sep, username, sep, name))
+    for row in db.top_usage('short', measure='inodes', count=args.count):
+        print("%.2e%s%s%s%s"%(row['measure'], sep, row['username'], sep, row['fullname']))
 
 def print_gdata(db, args):
     sep = args.separator
-    for size, username, name in db.gdata(count=args.count):
-        print("% 7d GiB%s%s%s%s"%(size/1024**3, sep, username, sep, name))
+    for row in db.top_usage('gdata', measure='size', count=args.count):
+        print("% 7d GiB%s%s%s%s"%(row['measure']/1024**3, sep, row['username'], sep, row['fullname']))
 
 def print_igdata(db, args):
     sep = args.separator
-    for count, username, name in db.igdata(count=args.count):
-        print("%.2e%s%s%s%s"%(count, sep, username, sep, name))
+    for row in db.top_usage('gdata', measure='inodes', count=args.count):
+        print("%.2e%s%s%s%s"%(row['measure'], sep, row['username'], sep, row['fullname']))
 
 def main():
     parser = argparse.ArgumentParser()
@@ -143,7 +66,9 @@ def main():
 
     args = parser.parse_args()
 
-    db = usagedb(args.project, args.year)
+    path = 'sqlite:////short/public/aph502/.data/usage_%s_%s.db'%(args.project, args.year)
+    db = ProjectDataset(args.project, path)
+
     args.func(db, args)
 
 if __name__ == '__main__':
