@@ -334,6 +334,9 @@ class ProjectDataset(object):
         if measure == 'size':
             scale = 1024**3 
 
+        # Get the storage for this quarter, grab the last record, which corresponds
+        # to the most recent scan date, sort, take the largest count records and
+        # divide by scale
         return self.getstorage(year, 
                                quarter, 
                                storagept=storagepoint, 
