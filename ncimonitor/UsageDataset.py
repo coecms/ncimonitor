@@ -316,7 +316,7 @@ class ProjectDataset(object):
         return float(q['grant']),float(q['igrant'])
 
 
-    def top_usage(self, year, quarter, storagepoint, measure='size', count=10):
+    def top_usage(self, year, quarter, storagepoint, measure='size', count=10, scale=1):
         """
         Return the top ``count`` users according to ``measure`` (either 'size'
         or 'inodes') on ``storagepoint`` for ``year`` and ``quarter``
@@ -330,10 +330,9 @@ class ProjectDataset(object):
         if measure not in ['size', 'inodes']:
             raise Exception(f"Unexpected measure '{measure}'")
 
-        scale = 1
-        if measure == 'size':
-            scale = 1024**3 
-
+        # Get the storage for this quarter, grab the last record, which corresponds
+        # to the most recent scan date, sort, take the largest count records and
+        # divide by scale
         return self.getstorage(year, 
                                quarter, 
                                storagept=storagepoint, 
