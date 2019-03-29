@@ -64,7 +64,7 @@ class JobsDataset(object):
 
     def addjob(self, year, queuename, jobid, project, username,
                status, jobname, jobprio, exe, arguments,
-               ctime, mtime, qtime, stime,
+               ctime, mtime, qtime, stime, queuetime,
                maxwalltime, maxmem, ncpus,
                walltime, mem, cputime):
 
@@ -91,6 +91,7 @@ class JobsDataset(object):
                     mtime=mtime,
                     qtime=qtime,
                     stime=stime,
+                    queuetime=queuetime,
                     maxwalltime=maxwalltime,
                     maxmem=maxmem,
                     ncpus=ncpus,

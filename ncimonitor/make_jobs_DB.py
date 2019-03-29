@@ -58,8 +58,8 @@ def pbs_str_to_date(datestring):
     'Tue Mar 12 09:45:37 2019'
 
     """
-    # return datetime.datetime.strptime(datestring, "%a %b %d %H:%M:%S %Y")
-    return datestring
+    return datetime.datetime.strptime(datestring, "%a %b %d %H:%M:%S %Y")
+    # return datestring
 
 def walltime_to_seconds(walltimestring):
     """
@@ -133,6 +133,15 @@ def parse_qstat_json_dump(filename, dbfile):
             stime = maybe_get_time(info, 'stime')
             mtime = maybe_get_time(info, 'mtime')
 
+            if stime is None:
+                start = datetime.datetime.now()
+            else:
+                start = stime
+
+            # Create a derived field which is the total time spend queuing before
+            # job started
+            queuetime = (start - ctime).total_seconds()
+
             year = int(info['qtime'].split()[-1])
             # year = qtime.year
 
@@ -154,12 +163,12 @@ def parse_qstat_json_dump(filename, dbfile):
 
             print(year, info['queue'], jobid, info['project'], username,
                     info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                    ctime, mtime, qtime, stime,
+                    ctime, mtime, qtime, stime, queuetime,
                     maxwalltime, maxmem, ncpus,
                     mem, walltime, cputime)
             db.addjob(year, info['queue'], jobid, info['project'], username,
                       info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                      ctime, mtime, qtime, stime,
+                      ctime, mtime, qtime, stime, queuetime,
                       maxwalltime, maxmem, ncpus,
                       mem, walltime, cputime)
 
