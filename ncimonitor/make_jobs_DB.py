@@ -63,15 +63,14 @@ def pbs_str_to_date(datestring):
 
 def walltime_to_seconds(walltimestring):
     """
-    Parse a PBS walltime like this into a time delta
+    Parse a PBS walltime like this into a time delta and return 
+    in units of total seconds
 
     '09:45:37'
 
     """
-    # date = datetime.datetime.strptime(walltimestring, "%H:%M:%S")
-    # return datetime.timedelta(hours=date.hour, minutes=date.minute, seconds=date.second)
     if walltimestring is None:
-        return None
+        return -1.
 
     (h, m, s) = walltimestring.split(':')
     return datetime.timedelta(hours=int(h), minutes=int(m), seconds=int(s)).total_seconds()
@@ -111,8 +110,13 @@ def parse_qstat_json_dump(filename, dbfile):
             print(jobid)
 
             # Must have
-            qtime = maybe_get_time(info, 'qtime', must=True)
             ctime = maybe_get_time(info, 'ctime', must=True)
+            qtime = maybe_get_time(info, 'qtime', must=True)
+            mtime = maybe_get_time(info, 'mtime', must=True)
+
+            # Store all times as offset from creation time in seconds
+            qtime = (qtime - ctime).total_seconds()
+            mtime = (mtime - ctime).total_seconds()
 
             """
                  B  Array job: at least one subjob has started.
@@ -131,19 +135,21 @@ def parse_qstat_json_dump(filename, dbfile):
 
             # Put in some logic checking for job_state?
             stime = maybe_get_time(info, 'stime')
-            mtime = maybe_get_time(info, 'mtime')
 
+            # Needed to calculate time in the queue
             if stime is None:
                 start = datetime.datetime.now()
+                stime = -1.
             else:
                 start = stime
+                stime = (stime - ctime).total_seconds()
 
             # Create a derived field which is the total time spend queuing before
             # job started
-            queuetime = (start - ctime).total_seconds()
+            waitime = (start - ctime).total_seconds()
 
-            year = int(info['qtime'].split()[-1])
-            # year = qtime.year
+            # year = int(info['qtime'].split()[-1])
+            year = ctime.year
 
             username = info['Job_Owner'].split('@')[0]
 
@@ -152,10 +158,14 @@ def parse_qstat_json_dump(filename, dbfile):
 
             maxwalltime = walltime_to_seconds(resources['walltime'])
             walltime = walltime_to_seconds(resources_used.get('walltime', None))
-            maxmem = resources.get('mem', None)
+            maxmem = int(parse_size(resources.get('mem', '0b').upper()))
             ncpus = resources.get('ncpus', None)
-            mem = resources_used.get('mem', None)
+            mem = int(parse_size(resources_used.get('mem', '0b').upper()))
             cputime = walltime_to_seconds(resources_used.get('cput', None))
+            try:
+                cpuutil = cputime/(walltime*ncpus)
+            except ZeroDivisionError:
+                cpuutil = -1.
 
             exe = strip_ml(info.get('executable', ''))
             arglist = strip_ml(info.get('argument_list', ''))
@@ -163,14 +173,14 @@ def parse_qstat_json_dump(filename, dbfile):
 
             print(year, info['queue'], jobid, info['project'], username,
                     info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                    ctime, mtime, qtime, stime, queuetime,
+                    ctime, mtime, qtime, stime, waitime,
                     maxwalltime, maxmem, ncpus,
-                    mem, walltime, cputime)
+                    walltime, mem, cputime, cpuutil)
             db.addjob(year, info['queue'], jobid, info['project'], username,
                       info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                      ctime, mtime, qtime, stime, queuetime,
+                      ctime, mtime, qtime, stime, waitime,
                       maxwalltime, maxmem, ncpus,
-                      mem, walltime, cputime)
+                      walltime, mem, cputime, cpuutil)
 
 def main(args):
 

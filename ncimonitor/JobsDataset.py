@@ -64,9 +64,9 @@ class JobsDataset(object):
 
     def addjob(self, year, queuename, jobid, project, username,
                status, jobname, jobprio, exe, arguments,
-               ctime, mtime, qtime, stime, queuetime,
+               ctime, mtime, qtime, stime, waitime,
                maxwalltime, maxmem, ncpus,
-               walltime, mem, cputime):
+               walltime, mem, cputime, cpuutil):
 
         self.adduser(username)
         self.addqueue(queuename)
@@ -78,7 +78,7 @@ class JobsDataset(object):
         queue = self.db['Queue'].find_one(queue=queuename)
         proj = self.db['Project'].find_one(project=project)
         stat = self.db['JobState'].find_one(status=status)
-        exe = self.db['JobState'].find_one(status=exe)
+        exe = self.db['Executable'].find_one(path=exe)
 
         data = dict(year=year, 
                     jobid=jobid,
@@ -87,17 +87,19 @@ class JobsDataset(object):
                     user=user['id'], 
                     status=stat['id'], 
                     jobname=jobname,
+                    exe=exe['id'],
                     ctime=ctime,
                     mtime=mtime,
                     qtime=qtime,
                     stime=stime,
-                    queuetime=queuetime,
+                    waitime=waitime,
                     maxwalltime=maxwalltime,
                     maxmem=maxmem,
                     ncpus=ncpus,
                     walltime=walltime,
                     mem=mem,
-                    cputime=cputime
+                    cputime=cputime,
+                    cpuutil=cpuutil
                     )
 
         # for k in list(data.keys()):
