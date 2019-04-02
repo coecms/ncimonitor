@@ -93,9 +93,13 @@ def strip_ml(text):
         return None
     return re.sub('<[^<]+?>', '', text)
 
-def parse_qstat_json_dump(filename, dbfile):
+def parse_qstat_json_dump(filename, dbfile, verbose=False):
 
     db = JobsDataset("sqlite:///{}".format(dbfile))
+
+    numrecords = db.getnumrecords()
+
+    nentries = 0
 
     with open(filename) as f:
 
@@ -171,25 +175,32 @@ def parse_qstat_json_dump(filename, dbfile):
             arglist = strip_ml(info.get('argument_list', ''))
             subarglist = info.get('Submit_arguments', '')
 
-            print(year, info['queue'], jobid, info['project'], username,
-                    info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                    ctime, mtime, qtime, stime, waitime,
-                    maxwalltime, maxmem, ncpus,
-                    walltime, mem, cputime, cpuutil)
+            if args.verbose:
+                print(year, info['queue'], jobid, info['project'], username,
+                      info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
+                      ctime, mtime, qtime, stime, waitime,
+                      maxwalltime, maxmem, ncpus,
+                      walltime, mem, cputime, cpuutil)
             db.addjob(year, info['queue'], jobid, info['project'], username,
                       info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
                       ctime, mtime, qtime, stime, waitime,
                       maxwalltime, maxmem, ncpus,
                       walltime, mem, cputime, cpuutil)
+            nentries =+ 1
+                    
+    newrecords = self.numrecords() - numrecords
+
+    print("Added {} new records, updated {} records".format(newrecords, nentries - newrecords)) 
 
 def main(args):
 
     verbose = args.verbose
 
     for f in args.inputs:
-        if verbose: print(f)
+        if verbose: 
+            print("Reading dumpfile: {}".format(f))
         try:
-            parse_qstat_json_dump(f, args.database);
+            parse_qstat_json_dump(f, args.database, verbose)
         except:
             raise
         else:

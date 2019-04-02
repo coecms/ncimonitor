@@ -32,9 +32,16 @@ class JobsDataset(object):
 
     def __init__(self, dbfile=None):
         if dbfile is None:
-            dbfile = "sqlite:///jobs.db"
+            dbfile = 'sqlite:///jobs.db'
         self.dbfile = dbfile
         self.db = connect(dbfile)
+
+    def getnumrecords(self):
+        qstring = 'SELECT count(*) FROM Jobs'
+        q = self.db.query(qstring)
+        if q is None:
+            return 0
+        return q
 
     def addproject(self, project):
         data = dict(project=project)
