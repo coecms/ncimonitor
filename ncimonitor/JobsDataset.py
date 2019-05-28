@@ -24,6 +24,7 @@ from dataset import connect
 import datetime
 from pwd import getpwnam
 import pandas as pd
+import sqlalchemy
 
 class NotInDatabase(Exception):
     pass
@@ -37,11 +38,16 @@ class JobsDataset(object):
         self.db = connect(dbfile)
 
     def getnumrecords(self):
-        qstring = 'SELECT count(*) FROM Jobs'
-        q = self.db.query(qstring)
+        q = None
+        try:
+            qstring = 'SELECT count(*) as count FROM Jobs'
+            q = self.db.query(qstring)
+        except sqlalchemy.exc.OperationalError:
+            pass
         if q is None:
             return 0
-        return q
+        for record in q:
+            return record['count']
 
     def addproject(self, project):
         data = dict(project=project)
@@ -73,7 +79,7 @@ class JobsDataset(object):
                status, jobname, jobprio, exe, arguments,
                ctime, mtime, qtime, stime, waitime,
                maxwalltime, maxmem, ncpus,
-               walltime, mem, cputime, cpuutil):
+               walltime, mem, cputime, cpuutil, exitstatus):
 
         self.adduser(username)
         self.addqueue(queuename)
@@ -106,12 +112,9 @@ class JobsDataset(object):
                     walltime=walltime,
                     mem=mem,
                     cputime=cputime,
-                    cpuutil=cpuutil
+                    cpuutil=cpuutil,
+                    exitstatus=exitstatus
                     )
-
-        # for k in list(data.keys()):
-        #     if data[k] is None:
-         #        del(data[k])
 
         return self.db['Jobs'].upsert(data, ['year','jobid'])
 

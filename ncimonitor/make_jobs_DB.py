@@ -109,96 +109,105 @@ def parse_qstat_json_dump(filename, dbfile, verbose=False):
             data = data['Jobs']
 
         for jobid, info in data.items():
-            # Strip off '.r-man2' suffix if it exists
-            jobid = jobid.split('.')[0]
-            print(jobid)
 
-            # Must have
-            ctime = maybe_get_time(info, 'ctime', must=True)
-            qtime = maybe_get_time(info, 'qtime', must=True)
-            mtime = maybe_get_time(info, 'mtime', must=True)
+            if jobid == '_default': continue
 
-            # Store all times as offset from creation time in seconds
-            qtime = (qtime - ctime).total_seconds()
-            mtime = (mtime - ctime).total_seconds()
-
-            """
-                 B  Array job: at least one subjob has started.
-                 E  Job is exiting after having run.
-                 F  Job is finished.
-                 H  Job is held.
-                 M  Job was moved to another server.
-                 Q  Job is queued.
-                 R  Job is running.
-                 S  Job is suspended.
-                 T  Job is being moved to new location.
-                 U  Cycle-harvesting job is suspended due to keyboard activity.
-                 W  Job is waiting for its submitter-assigned start time to be reached.
-                 X  Subjob has completed execution or has been deleted.
-            """
-
-            # Put in some logic checking for job_state?
-            stime = maybe_get_time(info, 'stime')
-
-            # Needed to calculate time in the queue
-            if stime is None:
-                start = datetime.datetime.now()
-                stime = -1.
-            else:
-                start = stime
-                stime = (stime - ctime).total_seconds()
-
-            # Create a derived field which is the total time spend queuing before
-            # job started
-            waitime = (start - ctime).total_seconds()
-
-            # year = int(info['qtime'].split()[-1])
-            year = ctime.year
-
-            username = info['Job_Owner'].split('@')[0]
-
-            resources = info['Resource_List']
-            resources_used = info.get('resources_used',{})
-
-            maxwalltime = walltime_to_seconds(resources['walltime'])
-            walltime = walltime_to_seconds(resources_used.get('walltime', None))
-            maxmem = int(parse_size(resources.get('mem', '0b').upper()))
-            ncpus = resources.get('ncpus', None)
-            mem = int(parse_size(resources_used.get('mem', '0b').upper()))
-            cputime = walltime_to_seconds(resources_used.get('cput', None))
             try:
-                cpuutil = cputime/(walltime*ncpus)
-            except ZeroDivisionError:
-                cpuutil = -1.
+                # Strip off '.r-man2' suffix if it exists
+                jobid = jobid.split('.')[0]
 
-            exe = strip_ml(info.get('executable', ''))
-            arglist = strip_ml(info.get('argument_list', ''))
-            subarglist = info.get('Submit_arguments', '')
+                # Must have
+                ctime = maybe_get_time(info, 'ctime', must=True)
+                qtime = maybe_get_time(info, 'qtime', must=True)
+                mtime = maybe_get_time(info, 'mtime', must=True)
 
-            if args.verbose:
-                print(year, info['queue'], jobid, info['project'], username,
-                      info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                      ctime, mtime, qtime, stime, waitime,
-                      maxwalltime, maxmem, ncpus,
-                      walltime, mem, cputime, cpuutil)
-            db.addjob(year, info['queue'], jobid, info['project'], username,
-                      info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
-                      ctime, mtime, qtime, stime, waitime,
-                      maxwalltime, maxmem, ncpus,
-                      walltime, mem, cputime, cpuutil)
-            nentries =+ 1
+                # Store all times as offset from creation time in seconds
+                qtime = (qtime - ctime).total_seconds()
+                mtime = (mtime - ctime).total_seconds()
+
+                """
+                    B  Array job: at least one subjob has started.
+                    E  Job is exiting after having run.
+                    F  Job is finished.
+                    H  Job is held.
+                    M  Job was moved to another server.
+                    Q  Job is queued.
+                    R  Job is running.
+                    S  Job is suspended.
+                    T  Job is being moved to new location.
+                    U  Cycle-harvesting job is suspended due to keyboard activity.
+                    W  Job is waiting for its submitter-assigned start time to be reached.
+                    X  Subjob has completed execution or has been deleted.
+                """
+
+                # Put in some logic checking for job_state?
+                stime = maybe_get_time(info, 'stime')
+
+                # Needed to calculate time in the queue
+                if stime is None:
+                    start = datetime.datetime.now()
+                    stime = -1.
+                else:
+                    start = stime
+                    stime = (stime - ctime).total_seconds()
+
+                # Create a derived field which is the total time spend queuing before
+                # job started
+                waitime = (start - ctime).total_seconds()
+
+                # year = int(info['qtime'].split()[-1])
+                year = ctime.year
+
+                username = info['Job_Owner'].split('@')[0]
+
+                resources = info['Resource_List']
+                resources_used = info.get('resources_used',{})
+
+                maxwalltime = walltime_to_seconds(resources['walltime'])
+                walltime = walltime_to_seconds(resources_used.get('walltime', None))
+                maxmem = int(parse_size(resources.get('mem', '0b').upper()))
+                ncpus = resources.get('ncpus', None)
+                mem = int(parse_size(resources_used.get('mem', '0b').upper()))
+                cputime = walltime_to_seconds(resources_used.get('cput', None))
+                try:
+                    cpuutil = cputime/(walltime*ncpus)
+                except ZeroDivisionError:
+                    cpuutil = -1.
+
+                exe = strip_ml(info.get('executable', ''))
+                arglist = strip_ml(info.get('argument_list', ''))
+                subarglist = info.get('Submit_arguments', '')
+
+                # Use -999 to signify no exit status
+                exit_status =  info.get('Exit_status',-999)
+
+                if verbose:
+                    print(year, info['queue'], jobid, info['project'], username,
+                        info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
+                        ctime, mtime, qtime, stime, waitime,
+                        maxwalltime, maxmem, ncpus,
+                        walltime, mem, cputime, cpuutil, exit_status)
+                db.addjob(year, info['queue'], jobid, info['project'], username,
+                        info['job_state'], info['Job_Name'], resources['jobprio'], exe, arglist + subarglist,
+                        ctime, mtime, qtime, stime, waitime,
+                        maxwalltime, maxmem, ncpus,
+                        walltime, mem, cputime, cpuutil, exit_status)
+                nentries += 1
+            except:
+                print("Error parsing {}".format(jobid))
+                print(info)
+                raise
                     
-    newrecords = self.numrecords() - numrecords
+    newrecords = db.getnumrecords() - numrecords
 
-    print("Added {} new records, updated {} records".format(newrecords, nentries - newrecords)) 
+    print("Found {} entries. Added {} new records, {} records updated or unchanged".format(nentries, newrecords, nentries - newrecords)) 
 
 def main(args):
 
     verbose = args.verbose
 
     for f in args.inputs:
-        if verbose: 
-            print("Reading dumpfile: {}".format(f))
+        print("Reading dumpfile: {}".format(f))
         try:
             parse_qstat_json_dump(f, args.database, verbose)
         except:
