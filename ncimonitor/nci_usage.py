@@ -32,19 +32,9 @@ def main():
     parser.add_argument('--period', '-p', type=str)
     parser.add_argument('--count', default=10, type=int)
     parser.add_argument('--percent', default=False, action='store_true')
-
-    subparsers = parser.add_subparsers(help='Commands')
-    short = subparsers.add_parser('short', help='/short usage')
-    short.set_defaults(measure='size', storagepoint='short', format="%.0f", scale=bytes_to_gbytes, system='raijin')
-
-    gdata = subparsers.add_parser('gdata', help='/g/data usage')
-    gdata.set_defaults(measure='size', storagepoint='gdata', format="%.0f", scale=bytes_to_gbytes, system='global')
-
-    ishort = subparsers.add_parser('ishort', help='/short inodes')
-    ishort.set_defaults(measure='inodes', storagepoint='short', format="%i", scale=1, system='raijin')
-
-    igdata = subparsers.add_parser('igdata', help='/g/data inodes')
-    igdata.set_defaults(measure='inodes', storagepoint='gdata', format="%i", scale=1, system='global')
+    parser.add_argument('--short', action='store_true')
+    parser.add_argument('--gdata', action='store_true')
+    parser.add_argument('--measure', choices=['size','inodes'], default='size')
 
     args = parser.parse_args()
 
@@ -56,36 +46,49 @@ def main():
     path = 'sqlite:////short/public/aph502/.data/usage_%s_%s.db'%(args.project, year)
     db = ProjectDataset(args.project, path)
 
-    if args.measure == 'inodes':
-        name = "{} inodes ".format(args.storagepoint)
-    else:
-        if args.percent:
-            name = "{}".format(args.storagepoint)
+    storagepoints = []
+    if args.gdata:
+        storagepoints.append('gdata')
+    if args.short:
+        storagepoints.append('short')
+    if not (args.gdata or args.short):
+        storagepoints = ['short', 'gdata']
+
+    for storagepoint in storagepoints:
+
+        if args.measure == 'inodes':
+            name = "{} inodes ".format(storagepoint)
+            scale = 1
+            format_ = '%i'
         else:
-            name = "{} (GB)".format(args.storagepoint)
-    
-    if args.percent:
-        system = 'raijin'
-        if args.storagepoint == 'gdata':
-            system = 'global'
+            if args.percent:
+                name = "{}".format(storagepoint)
+            else:
+                name = "{} (GB)".format(storagepoint)
+            scale = 1024 ** 3 # 1 GB
+            format_ = '%.0f'
 
-        args.format="{0:.2f} %".format
-        grant, igrant = db.getsystemstorage(args.system, args.storagepoint, year, quarter)
+        if args.percent:
+            system = 'raijin'
+            if storagepoint == 'gdata':
+                system = 'global'
 
-        if args.measure == 'size':
-            args.scale = grant / 100.
-        elif args.measure == 'inodes':
-            args.scale = igrant / 100.
+            format_ = "{0:.0f} %".format
+            grant, igrant = db.getsystemstorage(system, storagepoint, year, quarter)
 
-    print(db.top_usage(year, 
-                       quarter, 
-                       args.storagepoint, 
-                       args.measure, 
-                       args.count,
-                       args.scale
-                       ).to_frame(
-                           name
-                       ).to_string(float_format=args.format))
+            if args.measure == 'size':
+                scale = grant / 100.
+            elif args.measure == 'inodes':
+                scale = igrant / 100.
+
+        df = db.getstorage(year, quarter, storagept=storagepoint, datafield=args.measure)
+        usertotal = df.ix[-1]
+        total = sum(usertotal)
+
+        report = usertotal.sort_values(ascending=False).head(args.count)
+        report.at['TOTAL'] = total
+
+        print(report.divide(scale).to_frame(name).to_string(float_format=format_))
 
 if __name__ == '__main__':
     main()
