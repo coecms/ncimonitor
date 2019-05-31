@@ -213,7 +213,7 @@ def main(args):
         except:
             raise
         else:
-            # archive(f)
+            archive(f)
             pass
 
 def parse_args(args):
