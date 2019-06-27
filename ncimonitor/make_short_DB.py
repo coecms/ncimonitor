@@ -34,7 +34,7 @@ databases = {}
 dbfileprefix = '.'
 verbose = False
 
-def parse_short_file(filename):
+def parse_short_file(filename, dburl=None):
 
     db = None
     
@@ -47,28 +47,26 @@ def parse_short_file(filename):
                 for line in f:
                     if line.startswith("%%%%%%%%%%%%%%%%%"):
                         # Grab date string
-                        date = datetime.datetime.strptime(f.next().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y")
+                        date = datetime.datetime.strptime(f.readline().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y")
                         year, quarter = datetoyearquarter(date)
                         # Gobble another line
-                        line = f.next()
+                        line = f.readline()
                         break
                     else:
                         next
 
                 # Assume a certain structure ....
-                line = f.next()
+                line = f.readline()
                 project = line.split()[4].strip(':')
                 if not project in databases:
-                    if args.db:
-                        dburl = args.db
-                    else:
+                    if dburl is None:
                         dburl = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,date.year))
-                    print('DB URL:'+dburl)
+                    print('DB URL:',dburl)
                     databases[project] = ProjectDataset(project,dburl)
                 db = databases[project]
 
                 # Gobble the three header lines
-                line = f.next(); line = f.next(); line = f.next()
+                line = f.readline(); line = f.readline(); line = f.readline()
 
                 for line in f:
                     try:
@@ -78,7 +76,8 @@ def parse_short_file(filename):
                     db.adduser(user)
                     if verbose: print('Adding short ',folder,user,size,inodes,scandate)
                     db.addshortusage(folder,user,parse_size(size.upper()),inodes,scandate)
-            except:
+            except Exception as e:
+                print(e)
                 break
 
 def main(args):
@@ -88,11 +87,12 @@ def main(args):
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_short_file(f);
+            parse_short_file(f, args.dburl)
         except:
             raise
         else:
-            archive(f)
+            pass
+            # archive(f)
 
 def parse_args(args):
     """
@@ -101,7 +101,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="Parse short file dumps")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
-    parser.add_argument("-db","--db-url", help="Database file url")
+    parser.add_argument("-db","--dburl", help="Database file url", default=None)
     parser.add_argument("inputs", help="dumpfiles", nargs='+')
 
     return parser.parse_args()
