@@ -59,8 +59,12 @@ def parse_short_file(filename):
                 line = f.next()
                 project = line.split()[4].strip(':')
                 if not project in databases:
-                    dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,date.year))
-                    databases[project] = ProjectDataset(project,dbfile)
+                    if args.db:
+                        dburl = args.db
+                    else:
+                        dburl = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,date.year))
+                    print('DB URL:'+dburl)
+                    databases[project] = ProjectDataset(project,dburl)
                 db = databases[project]
 
                 # Gobble the three header lines
@@ -97,6 +101,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="Parse short file dumps")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
+    parser.add_argument("-db","--db-url", help="Database file url")
     parser.add_argument("inputs", help="dumpfiles", nargs='+')
 
     return parser.parse_args()
