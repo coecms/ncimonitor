@@ -118,7 +118,11 @@ class JobsDataset(object):
 
         return self.db['Jobs'].upsert(data, ['year','jobid'])
 
-    def getjobs(self, startdate=None, enddate=None):
+    # Default bin definitions are those use by NCI
+    ncibins = [0, 2, 16, 128, 1024, float("inf")]
+    ncilabels = ['XXS','XS','S','M','L']
+
+    def getjobs(self, startdate=None, enddate=None, status='F', ncpubins=ncibins, ncpulabels=ncilabels):
         """
         Returns most useful fields as a pandas dataframe
         """
@@ -131,15 +135,25 @@ class JobsDataset(object):
         LEFT JOIN JobState ON Jobs.status = JobState.id
         """
 
+        # Setting status None will return all jobs regardless of status
+        if status is not None:
+            qstring += """WHERE JobState.status = \'{status}\'"""
+
         # Unless start and end date specified return all records
         if startdate is not None and enddate is not None:
             qstring += """WHERE ctime between \'{start}\' AND \'{end}\'"""
 
         try:
-            df = pd.read_sql_query(qstring.format(start=startdate,end=enddate), self.db.executable)
+            df = pd.read_sql_query(qstring.format(start=startdate,end=enddate,status=status), self.db.executable)
         except:
             print("No data available")
             return None
+
+        if ncpubins is not None and ncpulabels is not None:
+            df = df.assign(ncpusbin = pd.cut(df.ncpus, ncpubins, labels=ncpulabels))
+        
+        # Remedy typo in some versions of the database
+        df.rename(columns={'waitime':'waittime'}, inplace=True)
             
         return df
 

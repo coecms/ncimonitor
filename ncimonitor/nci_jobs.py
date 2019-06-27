@@ -178,12 +178,12 @@ def main():
     parser.add_argument("-p","--period", help="Time period in year.quarter (e.g. 2015.q4)")
     parser.add_argument("-P","--project", help="Specify project id(s)", nargs='*')
     parser.add_argument("-S","--system", help="System name", default="raijin")
-    parser.add_argument("--usage", help="Show SU usage (default true)", action='store_true')
     parser.add_argument("--pdf", help="Save pdf copies of plots", action='store_true')
     parser.add_argument("--noshow", help="Do not show plots", action='store_true')
     parser.add_argument("--username", help="Show username rather than full name in plot legend", action='store_true')
-    parser.add_argument("-n","--num", help="Show only top num users where appropriate", type=int, default=None)
-    parser.add_argument("-c","--cutoff", help="Show only users whose storage exceeds cutoff", type=float, default=None)
+    parser.add_argument("-v","--plotvar", help="Variable to plot", default='waittime')
+    parser.add_argument("-g","--groupvar", help="Variable by which to group", default='queue')
+    parser.add_argument("-s","--splitvar", help="Variable by which to split groups", default='ncpusbin')
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--showtotal", help="Show the file usage limit", action='store_true')
     group.add_argument("-d","--delta", help="Show change in file system usage since beginning of time period", action='store_true')
@@ -208,28 +208,34 @@ def main():
 
         df = db.getjobs()
 
+        if df.empty:
+            raise ValueError("No data returned for this query")
+
         if args.project:
-            df = df.loc[df.project.isin(args.project),]
+            project = []
+            for p in args.project:
+                if p == 'clex':
+                    project.extend(['w35', 'w40', 'w42', 'w48', 'w97', 'v45'])
+                elif p == 'mom':
+                    project.extend(['v45', 'e14', 'x77', 'g40'])
+                else:
+                    project.append(p)
+            project = set(project)
+            print(project)
+            df = df.loc[df.project.isin(project),]
 
         users = None
         if args.users is not None:
-            plot_by_user = True
             users = args.users
+            df = df.loc[df.username.isin(args.users),]
 
-        if args.maxusage:
-            total_grant = args.maxusage
-        else:
-            if plot_by_user:
-                # Doesn't make sense to show "ideal" usage when showing individual usage
-                total_grant = None
-            else:
-                total_grant = db.getgrant(year, quarter)
+        if df.empty:
+            raise ValueError("No data left after applying variable choices")
 
-        system = args.system
+        # Add a binned job size column using cut
+        # pd.cut(df.ncpus,[0,1,2,16,128,1024,float("inf")])
 
-        if args.usage:
-
-            plot_usage(db,project,system,year,quarter,users,args.pdf)
+        pd.pivot_table(df, values=args.plotvar, index=args.groupvar, columns=args.splitvar).plot(kind='bar')
 
         if not args.noshow: plt.show()
 
