@@ -38,14 +38,14 @@ class ProjectDataset(object):
         self.db = connect(dbfile)
 
     def adduser(self, username, fullname=None):
-        if self.db['User'].find_one(username=username) is None:
+        if self.db['Users'].find_one(username=username) is None:
             if fullname is None:
                 try:
                     fullname = getpwnam(username).pw_gecos
                 except KeyError:
                     fullname = username
             data = dict(username=username, fullname=fullname)
-            self.db['User'].upsert(data, list(data.keys()))
+            self.db['Users'].upsert(data, list(data.keys()))
 
     def addquarter(self, year, quarter, startdate, enddate):
         data = dict(year=year, quarter=quarter, start_date=startdate, end_date=enddate)
@@ -56,7 +56,7 @@ class ProjectDataset(object):
         return self.db['Grant'].upsert(data, ['year', 'quarter'])
 
     def adduserusage(self, date, username, usecpu, usewall, usesu):
-        user = self.db['User'].find_one(username=username)
+        user = self.db['Users'].find_one(username=username)
         data = dict(date=date, user=user['id'], usage_cpu=float(usecpu), usage_wall=float(usewall), usage_su=float(usesu))
         return self.db['UserUsage'].upsert(data, ['date','user'])
 
@@ -74,12 +74,12 @@ class ProjectDataset(object):
         return self.db['ProjectUsage'].upsert(data, ['date', 'systemqueue'])
 
     def addshortusage(self, folder, username, size, inodes, scandate):
-        user = self.db['User'].find_one(username=username)
+        user = self.db['Users'].find_one(username=username)
         data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
         return self.db['ShortUsage'].upsert(data, ['scandate', 'folder', 'user'])
 
     def addgdatausage(self, storagepoint, folder, username, size, inodes, scandate):
-        user = self.db['User'].find_one(username=username)
+        user = self.db['Users'].find_one(username=username)
         data = dict(user=user['id'], storagepoint=storagepoint, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
         return self.db['GdataUsage'].upsert(data, ['scandate', 'storagepoint', 'folder', 'user'])
 
@@ -112,7 +112,7 @@ class ProjectDataset(object):
 
     def getusersu(self, year, quarter, username, scale=None):
         startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['User'].find_one(username=username)
+        user = self.db['Users'].find_one(username=username)
         if user is None:
             raise Exception('User {} does not exist in project {}'.format(username,self.project))
         qstring = "SELECT date, SUM(usage_su) AS totsu FROM UserUsage WHERE date between '{}' AND '{}' AND user={} GROUP BY date ORDER BY date".format(startdate,enddate,user['id'])
@@ -128,7 +128,7 @@ class ProjectDataset(object):
 
     def getusershort(self, year, quarter, username):
         startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['User'].find_one(username=username)
+        user = self.db['Users'].find_one(username=username)
         qstring = "SELECT scandate, SUM(size) AS totsize FROM ShortUsage WHERE scandate between '{}' AND '{}' AND user={} GROUP BY scandate ORDER BY scandate".format(startdate,enddate,user['id'])
         q = self.db.query(qstring)
         if q is None:
@@ -144,9 +144,9 @@ class ProjectDataset(object):
         startdate, enddate = self.getstartend(year, quarter)
 
         if namefield == 'user+name':
-            name_sql = 'printf("%s (%s)", User.fullname, User.username)'
+            name_sql = 'printf("%s (%s)", Users.fullname, Users.username)'
         elif namefield == 'user':
-            name_sql = 'User.username'
+            name_sql = 'Users.username'
         else:
             raise ValueError('Incorrect value of namefield: {} Valid values are "user+name" or "user"'.format(namefield))
 
@@ -155,7 +155,7 @@ class ProjectDataset(object):
 
         qstring = """SELECT {namefield} as Name, date as Date, SUM({datafield}) AS totsu
         FROM UserUsage
-        LEFT JOIN User ON UserUsage.user = User.id 
+        LEFT JOIN Users ON UserUsage.user = Users.id 
         WHERE date between \'{start}\' AND \'{end}\' 
         GROUP BY Name, Date 
         ORDER BY Date"""
@@ -193,9 +193,9 @@ class ProjectDataset(object):
             raise ValueError('Incorrect value of storagept: {} Valid values are "short" or "gdata"'.format(storagept))
 
         if namefield == 'user+name':
-            name_sql = 'printf("%s (%s)", User.fullname, User.username)'
+            name_sql = 'printf("%s (%s)", Users.fullname, Users.username)'
         elif namefield == 'user':
-            name_sql = 'User.username'
+            name_sql = 'Users.username'
         else:
             raise ValueError('Incorrect value of namefield: {} Valid values are "user+name" or "user"'.format(namefield))
 
@@ -204,7 +204,7 @@ class ProjectDataset(object):
 
         qstring = """SELECT {namefield} as Name, scandate as Date, SUM({datafield}) AS totsize 
         FROM {table}
-        LEFT JOIN User ON {table}.user = User.id
+        LEFT JOIN Users ON {table}.user = Users.id
         WHERE scandate between \'{start}\' AND \'{end}\'
         GROUP BY Name, Date
         ORDER BY Date"""
@@ -231,7 +231,7 @@ class ProjectDataset(object):
 
     def getusergdata(self, year, quarter, username):
         startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['User'].find_one(username=username)
+        user = self.db['Users'].find_one(username=username)
         qstring = "SELECT scandate, SUM(size) AS totsize FROM GdataUsage WHERE scandate between '{}' AND '{}' AND user={} GROUP BY scandate ORDER BY scandate".format(startdate,enddate,user['id'])
         q = self.db.query(qstring)
         if q is None:
@@ -261,7 +261,7 @@ class ProjectDataset(object):
             return None
         users = []
         for record in q:
-            users.append(self.db['User'].find_one(id=record["user"])["username"])
+            users.append(self.db['Users'].find_one(id=record["user"])["username"])
         return users
 
     def getsuusers(self, year, quarter):
@@ -272,14 +272,14 @@ class ProjectDataset(object):
             return None
         users = []
         for record in q:
-            users.append(self.db['User'].find_one(id=record["user"])["username"])
+            users.append(self.db['Users'].find_one(id=record["user"])["username"])
         return users
 
     def getuser(self, username=None):
-        return self.db['User'].find_one(username=username)
+        return self.db['Users'].find_one(username=username)
 
     def getusers(self):
-        qstring = "SELECT username FROM User"
+        qstring = "SELECT username FROM Users"
         q = self.db.query(qstring)
         for user in q:
             yield user['username']
