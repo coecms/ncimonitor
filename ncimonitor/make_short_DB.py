@@ -32,31 +32,24 @@ from .DBcommon import extract_num_unit, parse_size, mkdir, archive, datetoyearqu
 
 databases = {}
 dbfileprefix = '.'
-verbose = False
 
-def parse_short_file(filename, dburl=None):
+def parse_short_file(filename, verbose, dburl=None):
 
     db = None
     
     with open(filename) as f:
 
-        # Need this loop to support old method of having multiple dumps per file
-        while True:
-            # Need this try block to gracefully exit the above loop when end of file
-            try:
-                for line in f:
-                    if line.startswith("%%%%%%%%%%%%%%%%%"):
-                        # Grab date string
-                        date = datetime.datetime.strptime(f.readline().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y")
-                        year, quarter = datetoyearquarter(date)
-                        # Gobble another line
-                        line = f.readline()
-                        break
-                    else:
-                        next
+        parsing_usage = False
 
-                # Assume a certain structure ....
-                line = f.readline()
+        for line in f:
+            if verbose: print("> ",line)
+            if line.startswith("%%%%%%%%%%%%%%%%%"):
+                # Grab date string
+                date = datetime.datetime.strptime(f.readline().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y")
+                year, quarter = datetoyearquarter(date)
+                continue
+
+            if line.startswith("Usage details for project"):
                 project = line.split()[4].strip(':')
                 if not project in databases:
                     if dburl is None:
@@ -68,17 +61,18 @@ def parse_short_file(filename, dburl=None):
                 # Gobble the three header lines
                 line = f.readline(); line = f.readline(); line = f.readline()
 
-                for line in f:
-                    try:
-                        (folder,user,size,inodes,scandate) = line.strip(os.linesep).split() 
-                    except:
-                        break
-                    db.adduser(user)
-                    if verbose: print('Adding short ',folder,user,size,inodes,scandate)
-                    db.addshortusage(folder,user,parse_size(size.upper()),inodes,scandate)
-            except Exception as e:
-                print(e)
-                break
+                parsing_usage = True
+                continue
+
+            if parsing_usage:
+                try:
+                    (folder,user,size,inodes,scandate) = line.strip(os.linesep).split() 
+                except:
+                    if verbose: print('Finished parsing short usage')
+                    break
+                db.adduser(user)
+                if verbose: print('Adding short ',folder,user,size,inodes,scandate)
+                db.addshortusage(folder,user,parse_size(size.upper()),inodes,scandate)
 
 def main(args):
 
@@ -87,7 +81,7 @@ def main(args):
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_short_file(f, args.dburl)
+            parse_short_file(f, verbose, args.dburl)
         except:
             raise
         else:
