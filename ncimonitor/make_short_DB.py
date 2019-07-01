@@ -36,6 +36,7 @@ dbfileprefix = '.'
 def parse_short_file(filename, verbose, dburl=None):
 
     db = None
+    project = None
     
     with open(filename) as f:
 
@@ -69,10 +70,11 @@ def parse_short_file(filename, verbose, dburl=None):
                     (folder,user,size,inodes,scandate) = line.strip(os.linesep).split() 
                 except:
                     if verbose: print('Finished parsing short usage')
-                    break
+                    parsing_usage = False
+                    continue
                 db.adduser(user)
                 if verbose: print('Adding short ',folder,user,size,inodes,scandate)
-                db.addshortusage(folder,user,parse_size(size.upper()),inodes,scandate)
+                db.addshortusage(project,folder,user,parse_size(size.upper()),inodes,scandate)
 
 def main(args):
 

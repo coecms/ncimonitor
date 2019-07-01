@@ -31,9 +31,8 @@ from .DBcommon import extract_num_unit, parse_size, mkdir, archive, datetoyearqu
 
 databases = {}
 dbfileprefix = '.'
-verbose = False
 
-def parse_gdata_file(filename):
+def parse_gdata_file(filename, verbose, dburl=None):
 
     db = None
 
@@ -50,42 +49,43 @@ def parse_gdata_file(filename):
     
     with open(filename) as f:
 
-        # Need this loop to support old method of having multiple dumps per file
-        while True:
-            # Need this try block to gracefully exit the above loop when end of file
-            try:
-                for line in f:
-                    if line.startswith("%%%%%%%%%%%%%%%%%"):
-                        # Grab date string
-                        date = datetime.datetime.strptime(f.next().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y")
-                        year, quarter = datetoyearquarter(date)
-                        # Gobble another line
-                        line = f.next()
-                        break
-                    else:
-                        next
+        parsing_usage = False
 
+        for line in f:
+            if verbose: print("> ",line)
+            if line.startswith("%%%%%%%%%%%%%%%%%"):
+                # Grab date string
+                date = datetime.datetime.strptime(f.readline().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y")
+                year, quarter = datetoyearquarter(date)
+                continue
+
+            if line.startswith("Usage details for project"):
                 # Assume a certain structure ....
-                line = f.next()
                 project = line.split()[4].strip(':')
                 if not project in databases:
-                    dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,date.year))
-                    databases[project] = ProjectDataset(project,dbfile)
+                    if dburl is None:
+                        dburl = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
+                    databases[project] = ProjectDataset(project,dburl)
                 db = databases[project]
 
                 # Gobble the three header lines
-                line = f.next(); line = f.next(); line = f.next()
+                for i in range(3):
+                    line = f.readline()
 
-                for line in f:
-                    try:
-                        (folder,user,size,inodes,scandate) = line.strip(os.linesep).split() 
-                    except:
-                        break
-                    db.adduser(user)
-                    if (verbose): print('Adding gdata ',folder,user,size,inodes,scandate)
-                    db.addgdatausage(storagept,folder,user,parse_size(size.upper()),inodes,scandate)
-            except:
-                break
+                parsing_usage = True
+
+                continue
+
+            if parsing_usage:
+                try:
+                    (folder,user,size,inodes,scandate) = line.strip(os.linesep).split() 
+                except:
+                    print('Finished parsing usage data')
+                    parsing_usage=False
+                    continue
+                db.adduser(user)
+                if (verbose): print('Adding gdata ',folder,user,size,inodes,scandate)
+                db.addgdatausage(project,storagept,folder,user,parse_size(size.upper()),inodes,scandate)
 
 
 def main(args):
@@ -95,11 +95,12 @@ def main(args):
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_gdata_file(f);
+            parse_gdata_file(f, verbose, args.dburl);
         except:
             raise
         else:
-            archive(f)
+            pass
+            # archive(f)
 
 def parse_args(args):
     """
@@ -108,6 +109,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="Parse gdata file dumps")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
+    parser.add_argument("-db","--dburl", help="Database file url", default=None)
     parser.add_argument("inputs", help="dumpfiles", nargs='+')
 
     return parser.parse_args()

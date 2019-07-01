@@ -34,11 +34,11 @@ from .DBcommon import extract_num_unit, parse_size, mkdir, archive, parse_inoden
 
 databases = {}
 dbfileprefix = '.'
-verbose = False
 
-def parse_SU_file(filename):
+def parse_SU_file(filename, verbose, dburl=None):
 
     insystem = False; instorage = False; inuser = False
+    project = None
     
     with open(filename) as f:
 
@@ -46,7 +46,7 @@ def parse_SU_file(filename):
         for line in f:
             if line.startswith("%%%%%%%%%%%%%%%%%"):
                 # Grab date string
-                date = datetime.datetime.strptime(f.next().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y").date()
+                date = datetime.datetime.strptime(f.readline().strip(os.linesep), "%a %b %d %H:%M:%S %Z %Y").date()
             elif line.startswith("Usage Report:") and "Compute" in line:
                 words = line.split()
                 project = words[2].split('=')[1]
@@ -56,17 +56,18 @@ def parse_SU_file(filename):
                 startdate = datetime.datetime.strptime(startdate.strip('('),"%d/%m/%Y").date()
                 enddate = datetime.datetime.strptime(enddate.strip(')'),"%d/%m/%Y").date()
                 if not project in databases:
-                    dbfile = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
-                    databases[project] = ProjectDataset(project,dbfile)
+                    if dburl is None:
+                        dburl = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,year))
+                    databases[project] = ProjectDataset(project,dburl)
                 db = databases[project]
                 db.addquarter(year,quarter,startdate,enddate)
             elif line.startswith("Total Grant:"):
                 total = line.split(":")[1]
                 # Grant is stored in KSU, parse_size translates to SU, so divide by zero
-                db.addgrant(year,quarter,parse_size(total.upper(),u='SU')/1000.)
+                db.addgrant(project,year,quarter,parse_size(total.upper(),u='SU')/1000.)
             elif line.startswith("System        Queue"):
                 insystem = True
-                f.next()
+                f.readline()
             elif insystem:
                 try:
                     (system,queue,weight,usecpu,usewall,usesu,tmp,tmp,tmp) = line.strip(os.linesep).split() 
@@ -75,11 +76,11 @@ def parse_SU_file(filename):
                     continue
                 db.addsystemqueue(system,queue,weight)
                 if verbose: print('Add project usage ',date,system,queue,usecpu,usewall,usesu)
-                db.addprojectusage(date,system,queue,usecpu,usewall,usesu)
+                db.addprojectusage(project,date,system,queue,usecpu,usewall,usesu)
             elif line.startswith("Batch Queue Usage per User"):
                 inuser = True
                 # Gobble three lines
-                f.next(); f.next(); f.next()
+                f.readline(); f.readline(); f.readline()
             elif inuser:
                 try:
                     (user,usecpu,usewall,usesu,tmp) = line.strip(os.linesep).split() 
@@ -88,10 +89,10 @@ def parse_SU_file(filename):
                     continue
                 db.adduser(user)
                 if verbose: print('Add usage ',date,user,usecpu,usewall,usesu)
-                db.adduserusage(date,user,usecpu,usewall,usesu)
+                db.adduserusage(project,date,user,usecpu,usewall,usesu)
             elif line.startswith("System    StoragePt"):
                 instorage = True
-                f.next()
+                f.readline()
             elif instorage:
                 try:
                     (systemname,storagept,grant,tmp,tmp,igrant,tmp,tmp) = line.strip(os.linesep).split() 
@@ -99,7 +100,7 @@ def parse_SU_file(filename):
                     instorage = False
                     continue
                 print(year, quarter, systemname, storagept, grant.upper(), parse_size(grant.upper()))
-                db.addsystemstorage(systemname,storagept,year,quarter,parse_size(grant.upper()),parse_inodenum(igrant))
+                db.addsystemstorage(project,systemname,storagept,year,quarter,parse_size(grant.upper()),parse_inodenum(igrant))
 
 
 def main(args):
@@ -109,11 +110,12 @@ def main(args):
     for f in args.inputs:
         if verbose: print(f)
         try:
-            parse_SU_file(f);
+            parse_SU_file(f, verbose, args.dburl)
         except:
             raise
         else:
-            archive(f)
+            pass
+            # archive(f)
 
 def parse_args(args):
     """
@@ -122,6 +124,7 @@ def parse_args(args):
     parser = argparse.ArgumentParser(description="Parse usage dump files")
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
+    parser.add_argument("-db","--dburl", help="Database file url", default=None)
     parser.add_argument("inputs", help="dumpfiles", nargs='+')
 
     return parser.parse_args()

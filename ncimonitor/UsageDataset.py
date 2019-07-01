@@ -38,50 +38,103 @@ class ProjectDataset(object):
         self.db = connect(dbfile)
 
     def adduser(self, username, fullname=None):
-        if self.db['Users'].find_one(username=username) is None:
+        """
+        Add a unique user if it doesn't already exist. 
+        Return a unique id
+        """
+        id = self.db['Users'].find_one(username=username)
+        if id is None:
             if fullname is None:
                 try:
                     fullname = getpwnam(username).pw_gecos
                 except KeyError:
                     fullname = username
             data = dict(username=username, fullname=fullname)
-            self.db['Users'].upsert(data, list(data.keys()))
+            id = self.db['Users'].insert(data, list(data.keys()))
+        else:
+            id = id['id']
+        return id
 
-    def addquarter(self, year, quarter, startdate, enddate):
-        data = dict(year=year, quarter=quarter, start_date=startdate, end_date=enddate)
-        return self.db['Quarter'].upsert(data, ['year', 'quarter'])
+    def addproject(self, project, description=None):
+        """
+        Add a unique project code if it doesn't already exist. 
+        Return a unique id
+        """
+        id = self.db['Project'].find_one(project=project)
+        if id is None:
+            if description is None:
+                description = ''
+            data = dict(project=project, description=description)
+            id = self.db['Project'].insert(data, ['project'])
+        else:
+            id = id['id']
+        return id
 
-    def addgrant(self, year, quarter, totalgrant):
-        data = dict(year=year, quarter=quarter, total_grant=totalgrant)
-        return self.db['Grant'].upsert(data, ['year', 'quarter'])
+    def addquarter(self, year, quarter, startdate=None, enddate=None):
+        """
+        Add a unique quarter
+        Return a unique id
+        """
+        id = self.db['Quarter'].find_one(year=year,quarter=quarter)
+        if id is None:
+            if startdate is None or enddate is None:
+                raise ValueError('Cannot define a new quarter without start and end dates')
+            data = dict(year=year, quarter=quarter, start_date=startdate, end_date=enddate)
+            id =  self.db['Quarter'].insert(data, ['year', 'quarter'])
+        else:
+            id = id['id']
+        return id
 
-    def adduserusage(self, date, username, usecpu, usewall, usesu):
-        user = self.db['Users'].find_one(username=username)
-        data = dict(date=date, user=user['id'], usage_cpu=float(usecpu), usage_wall=float(usewall), usage_su=float(usesu))
+    def addgrant(self, project, year, quarter, totalgrant):
+        project_id = self.addproject(project)
+        quarter_id = self.addquarter(year, quarter)
+        data = dict(project=project_id, quarter=quarter_id, total_grant=totalgrant)
+        return self.db['Grant'].upsert(data, ['project', 'year', 'quarter'])
+
+    def adduserusage(self, project, date, username, usecpu, usewall, usesu):
+        project_id = self.addproject(project)
+        user_id = self.adduser(username)
+        data = dict(date=date, project=project_id, user=user_id, usage_cpu=float(usecpu), usage_wall=float(usewall), usage_su=float(usesu))
         return self.db['UserUsage'].upsert(data, ['date','user'])
 
-    def addsystemqueue(self, systemname, queuename, weight):
-        data = dict(system=systemname,queue=queuename,chargeweight=float(weight))
-        return self.db['SystemQueue'].upsert(data, ['system', 'queue'])
+    def addsystemqueue(self, systemname, queuename, weight=None):
+        """
+        Add a unique system queue if one doesn't already exist
+        Return a unique id
+        """
+        id = self.db['SystemQueue'].find_one(system=systemname,queue=queuename)
+        if id is None:
+            if weight is None:
+                raise ValueError('Cannot define a new system queue without a value for weight')
+            data = dict(system=systemname, queue=queuename, chargeweight=float(weight))
+            id = self.db['SystemQueue'].insert(data, ['system', 'queue'])
+        else:
+            id = id['id']
+        return id
 
-    def addsystemstorage(self, systemname, storagepoint, year, quarter, grant, igrant):
-        data = dict(system=systemname,storagepoint=storagepoint,year=year,quarter=quarter,grant=float(grant),igrant=float(igrant))
-        return self.db['SystemStorage'].upsert(data, ['system', 'storagepoint', 'year', 'quarter'])
+    def addsystemstorage(self, project, systemname, storagepoint, year, quarter, grant, igrant):
+        quarter_id = self.addquarter(year, quarter)
+        project_id = self.addproject(project)
+        data = dict(system=systemname,storagepoint=storagepoint,quarter=quarter_id,project=project_id,grant=float(grant),igrant=float(igrant))
+        return self.db['SystemStorage'].upsert(data, ['system', 'storagepoint', 'project', 'quarter'])
 
-    def addprojectusage(self, date, systemname, queuename, cputime, walltime, su):
-        systemqueue = self.db['SystemQueue'].find_one(system=systemname,queue=queuename)
-        data = dict(date=date,systemqueue=systemqueue['id'],usage_cpu=float(cputime),usage_wall=float(walltime),usage_su=float(su))
-        return self.db['ProjectUsage'].upsert(data, ['date', 'systemqueue'])
+    def addprojectusage(self, project, date, systemname, queuename, cputime, walltime, su):
+        project_id = self.addproject(project)
+        systemqueue_id = self.addsystemqueue(systemname, queuename)
+        data = dict(date=date,project=project_id,systemqueue=systemqueue_id,usage_cpu=float(cputime),usage_wall=float(walltime),usage_su=float(su))
+        return self.db['ProjectUsage'].upsert(data, ['date', 'project', 'systemqueue'])
 
-    def addshortusage(self, folder, username, size, inodes, scandate):
-        user = self.db['Users'].find_one(username=username)
-        data = dict(user=user['id'], folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
-        return self.db['ShortUsage'].upsert(data, ['scandate', 'folder', 'user'])
+    def addshortusage(self, project, folder, username, size, inodes, scandate):
+        project_id = self.addproject(project)
+        user_id = self.adduser(username)
+        data = dict(project=project_id, user=user_id, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
+        return self.db['ShortUsage'].upsert(data, ['scandate', 'project', 'folder', 'user'])
 
-    def addgdatausage(self, storagepoint, folder, username, size, inodes, scandate):
-        user = self.db['Users'].find_one(username=username)
-        data = dict(user=user['id'], storagepoint=storagepoint, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
-        return self.db['GdataUsage'].upsert(data, ['scandate', 'storagepoint', 'folder', 'user'])
+    def addgdatausage(self, project, storagepoint, folder, username, size, inodes, scandate):
+        project_id = self.addproject(project)
+        user_id = self.adduser(username)
+        data = dict(project=project_id, user=user_id, storagepoint=storagepoint, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
+        return self.db['GdataUsage'].upsert(data, ['scandate', 'storagepoint', 'project', 'folder', 'user'])
 
     def getstartend(self, year, quarter, asdate=False):
         q = self.db['Quarter'].find_one(year=year, quarter=quarter)
@@ -93,14 +146,20 @@ class ProjectDataset(object):
             return q['start_date'],q['end_date']
 
     def getgrant(self, year, quarter):
-        q = self.db['Grant'].find_one(year=year, quarter=quarter)
+        quarter_id = self.addquarter(year, quarter)
+        q = self.db['Grant'].find_one(quarter=quarter_id)
         if q is None:
             return None
         return float(q['total_grant'])
 
-    def getprojectsu(self, year, quarter):
+    def getprojectsu(self, project, year, quarter):
+        project_id = self.addproject(project)
         startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT date, SUM(usage_su) AS totsu FROM ProjectUsage WHERE date between '{}' AND '{}' GROUP BY date ORDER BY date".format(startdate,enddate)
+        qstring = """SELECT date, SUM(usage_su) AS totsu FROM ProjectUsage 
+                     WHERE project={project} AND 
+                     date between '{start}' AND '{end}' 
+                     GROUP BY date ORDER BY date
+                     """.format(project=project_id, start=startdate, end=enddate)
         q = self.db.query(qstring)
         if q is None:
             return None
@@ -110,12 +169,17 @@ class ProjectDataset(object):
             usage.append(record["totsu"]/1000.)
         return dates, usage
 
-    def getusersu(self, year, quarter, username, scale=None):
+    def getusersu(self, project, year, quarter, username, scale=None):
+        project_id = self.addproject(project)
         startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['Users'].find_one(username=username)
+        user_id = self.adduser(username)
         if user is None:
-            raise Exception('User {} does not exist in project {}'.format(username,self.project))
-        qstring = "SELECT date, SUM(usage_su) AS totsu FROM UserUsage WHERE date between '{}' AND '{}' AND user={} GROUP BY date ORDER BY date".format(startdate,enddate,user['id'])
+            raise Exception('User {} does not exist in project {}'.format(username, project))
+        qstring = """SELECT date, SUM(usage_su) AS totsu FROM UserUsage 
+                     WHERE project={project} AND 
+                     date between '{start}' AND '{end}' AND 
+                     user={userid} GROUP BY date ORDER BY date
+                     """.format(project=project_id, start=startdate, end=enddate, user=user_id)
         q = self.db.query(qstring)
         if q is None:
             return None
@@ -127,9 +191,14 @@ class ProjectDataset(object):
         return dates, usage
 
     def getusershort(self, year, quarter, username):
+        project_id = self.addproject(project)
         startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['Users'].find_one(username=username)
-        qstring = "SELECT scandate, SUM(size) AS totsize FROM ShortUsage WHERE scandate between '{}' AND '{}' AND user={} GROUP BY scandate ORDER BY scandate".format(startdate,enddate,user['id'])
+        user_id = self.adduser(username)
+        qstring = """SELECT scandate, SUM(size) AS totsize FROM ShortUsage 
+                     WHERE project={project} AND 
+                     scandate between '{start}' AND '{end}' AND 
+                     user={user} GROUP BY scandate ORDER BY scandate
+                     """.format(project=project_id, start=startdate, end=enddate, user=user_id)
         q = self.db.query(qstring)
         if q is None:
             return None
