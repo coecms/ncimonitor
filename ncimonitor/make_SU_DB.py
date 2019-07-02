@@ -63,7 +63,7 @@ def parse_SU_file(filename, verbose, dburl=None):
                 db.addquarter(year,quarter,startdate,enddate)
             elif line.startswith("Total Grant:"):
                 total = line.split(":")[1]
-                # Grant is stored in KSU, parse_size translates to SU, so divide by zero
+                # Grant is stored in KSU, parse_size translates to SU, so divide by one thousand
                 db.addgrant(project,year,quarter,parse_size(total.upper(),u='SU')/1000.)
             elif line.startswith("System        Queue"):
                 insystem = True
@@ -83,13 +83,13 @@ def parse_SU_file(filename, verbose, dburl=None):
                 f.readline(); f.readline(); f.readline()
             elif inuser:
                 try:
-                    (user,usecpu,usewall,usesu,tmp) = line.strip(os.linesep).split() 
+                    (user,usecpu,usewall,usesu,efficiency) = line.strip(os.linesep).split() 
                 except:
                     inuser = False
                     continue
                 db.adduser(user)
-                if verbose: print('Add usage ',date,user,usecpu,usewall,usesu)
-                db.adduserusage(project,date,user,usecpu,usewall,usesu)
+                if verbose: print('Add usage ',date,user,usecpu,usewall,usesu,efficiency)
+                db.adduserusage(project,date,user,usecpu,usewall,usesu,efficiency.strip('%'))
             elif line.startswith("System    StoragePt"):
                 instorage = True
                 f.readline()
