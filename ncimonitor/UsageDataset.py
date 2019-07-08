@@ -30,29 +30,30 @@ class NotInDatabase(Exception):
 
 class ProjectDataset(object):
 
-    def __init__(self, project, dbfile=None):
-        self.project = project
-        if dbfile is None:
-            dbfile = "usage_{}.db".format(project)
-        self.dbfile = dbfile
-        self.db = connect(dbfile)
+    def __init__(self, project=None, dburl=None):
+        if project is not None:
+            self.project = project
+            if dburl is None:
+                dburl = "usage_{}.db".format(project)
+        self.dburl = dburl
+        self.db = connect(dburl)
 
-    def adduser(self, username, fullname=None):
+    def adduser(self, user, fullname=None):
         """
         Add a unique user if it doesn't already exist. 
         Return a unique id
         """
-        id = self.db['Users'].find_one(username=username)
-        if id is None:
+        q = self.db['Users'].find_one(user=user)
+        if q is None:
             if fullname is None:
                 try:
-                    fullname = getpwnam(username).pw_gecos
+                    fullname = getpwnam(user).pw_gecos
                 except KeyError:
-                    fullname = username
-            data = dict(username=username, fullname=fullname)
+                    fullname = user
+            data = dict(user=user, fullname=fullname)
             id = self.db['Users'].insert(data, list(data.keys()))
         else:
-            id = id['id']
+            id = q['id']
         return id
 
     def addproject(self, project, description=None):
@@ -60,14 +61,14 @@ class ProjectDataset(object):
         Add a unique project code if it doesn't already exist. 
         Return a unique id
         """
-        id = self.db['Project'].find_one(project=project)
-        if id is None:
+        q = self.db['Projects'].find_one(project=project)
+        if q is None:
             if description is None:
                 description = ''
             data = dict(project=project, description=description)
-            id = self.db['Project'].insert(data, ['project'])
+            id = self.db['Projects'].insert(data, ['project'])
         else:
-            id = id['id']
+            id = q['id']
         return id
 
     def addquarter(self, year, quarter, startdate=None, enddate=None):
@@ -75,66 +76,190 @@ class ProjectDataset(object):
         Add a unique quarter
         Return a unique id
         """
-        id = self.db['Quarter'].find_one(year=year,quarter=quarter)
-        if id is None:
+        q = self.db['Quarters'].find_one(year=year,quarter=quarter)
+        if q is None:
             if startdate is None or enddate is None:
                 raise ValueError('Cannot define a new quarter without start and end dates')
             data = dict(year=year, quarter=quarter, start_date=startdate, end_date=enddate)
-            id =  self.db['Quarter'].insert(data, ['year', 'quarter'])
+            id = self.db['Quarters'].insert(data, ['year', 'quarter'])
         else:
-            id = id['id']
+            id = q['id']
         return id
 
-    def addgrant(self, project, year, quarter, totalgrant):
-        project_id = self.addproject(project)
-        quarter_id = self.addquarter(year, quarter)
-        data = dict(project=project_id, quarter=quarter_id, total_grant=totalgrant)
-        return self.db['Grant'].upsert(data, ['project', 'year', 'quarter'])
+    def addsystem(self, system):
+        """
+        Add a unique system if one doesn't already exist
+        Return a unique id
+        """
+        q = self.db['Systems'].find_one(system=system)
+        if q is None:
+            data = dict(system=system)
+            id = self.db['Systems'].insert(data, ['system'])
+        else:
+            id = q['id']
+        return id
 
-    def adduserusage(self, project, date, username, usecpu, usewall, usesu):
-        project_id = self.addproject(project)
-        user_id = self.adduser(username)
-        data = dict(date=date, project=project_id, user=user_id, usage_cpu=float(usecpu), usage_wall=float(usewall), usage_su=float(usesu))
-        return self.db['UserUsage'].upsert(data, ['date','user'])
+    def addstoragepoint(self, system, storagepoint):
+        """
+        Add a unique system if one doesn't already exist
+        Return a unique id
+        """
+        system_id = self.addsystem(system)
+        q = self.db['StoragePoints'].find_one(system=system_id, storagepoint=storagepoint)
+        if q is None:
+            data = dict(system=system_id, storagepoint=storagepoint)
+            id = self.db['StoragePoints'].insert(data, ['system', 'storagepoint'])
+        else:
+            id = q['id']
+        return id
 
-    def addsystemqueue(self, systemname, queuename, weight=None):
+    def addscheme(self, scheme):
+        """
+        Add a unique schemeif one doesn't already exist
+        Return a unique id
+        """
+        q = self.db['Schemes'].find_one(scheme=scheme)
+        if q is None:
+            data = dict(scheme=scheme)
+            id = self.db['Schemes'].insert(data, ['scheme'])
+        else:
+            id = q['id']
+        return id
+
+    def addsystemqueue(self, system, queue, weight=None):
         """
         Add a unique system queue if one doesn't already exist
         Return a unique id
         """
-        id = self.db['SystemQueue'].find_one(system=systemname,queue=queuename)
-        if id is None:
+        system_id = self.addsystem(system)
+        q = self.db['SystemQueues'].find_one(system_id=system_id, queue=queue)
+        if q is None:
             if weight is None:
                 raise ValueError('Cannot define a new system queue without a value for weight')
-            data = dict(system=systemname, queue=queuename, chargeweight=float(weight))
-            id = self.db['SystemQueue'].insert(data, ['system', 'queue'])
+            data = dict(system_id=system_id, queue=queue, chargeweight=float(weight))
+            id = self.db['SystemQueues'].insert(data, ['system_id', 'queue'])
         else:
-            id = id['id']
+            id = q['id']
         return id
 
-    def addsystemstorage(self, project, systemname, storagepoint, year, quarter, grant, igrant):
+    def addusagegrant(self, project, system, scheme, year, quarter, date, allocation):
+        """
+        Grant is from a scheme for each project. It is per system and quarter,
+        but allow (and track) changes to the grant by allowing more than one
+        entry per quarter
+        """
+        project_id = self.addproject(project)
+        system_id = self.addsystem(system)
+        scheme_id = self.addscheme(scheme)
         quarter_id = self.addquarter(year, quarter)
-        project_id = self.addproject(project)
-        data = dict(system=systemname,storagepoint=storagepoint,quarter=quarter_id,project=project_id,grant=float(grant),igrant=float(igrant))
-        return self.db['SystemStorage'].upsert(data, ['system', 'storagepoint', 'project', 'quarter'])
+        data = dict(project_id=project_id, 
+                    system_id=system_id, 
+                    scheme_id=scheme_id, 
+                    quarter_id=quarter_id)
+        q = list(self.db['UsageGrants'].find(**data))
+        # Only update if there is a change to grant or no grant already defined
+        if not q or q[-1]['allocation'] != allocation:
+            data = dict(project_id=project_id, 
+                        system_id=system_id, 
+                        scheme_id=scheme_id, 
+                        quarter_id=quarter_id, 
+                        date=date, 
+                        allocation=allocation)
+            id = self.db['UsageGrants'].insert(data, ['project_id', 'system_id', 'scheme_id', 'quarter_id', 'date'])
+        else:
+            id = q[-1]['id']
+        return id
 
-    def addprojectusage(self, project, date, systemname, queuename, cputime, walltime, su):
+    def addstoragegrant(self, project, system, storagepoint, scheme, year, quarter, date, granttype, grant):
+        """
+        Grant is from a scheme for each project. It is per system and quarter,
+        but allow (and track) changes to the grant by allowing more than one
+        entry per quarter
+        """
         project_id = self.addproject(project)
-        systemqueue_id = self.addsystemqueue(systemname, queuename)
-        data = dict(date=date,project=project_id,systemqueue=systemqueue_id,usage_cpu=float(cputime),usage_wall=float(walltime),usage_su=float(su))
-        return self.db['ProjectUsage'].upsert(data, ['date', 'project', 'systemqueue'])
+        system_id = self.addsystem(system)
+        storagepoint_id = self.addstoragepoint(system, storagepoint)
+        scheme_id = self.addscheme(scheme)
+        quarter_id = self.addquarter(year, quarter)
+        data = dict(project_id=project_id, 
+                    system_id=system_id, 
+                    storagepoint_id=storagepoint_id, 
+                    scheme_id=scheme_id, 
+                    quarter_id=quarter_id)
+        q = list(self.db['StorageGrants'].find(**data))
+        # Only update if there is a change to grant or no grant already defined
+        if not q or q[-1][granttype] != grant:
+            data = dict(project_id=project_id, 
+                        system_id=system_id, 
+                        storagepoint_id=storagepoint_id, 
+                        scheme_id=scheme_id, 
+                        quarter_id=quarter_id, 
+                        date=date, 
+                        granttype=grant)
+            id = self.db['StorageGrants'].insert(data, ['project_id', 'system_id', 'storagepoint_id', 'scheme_id', 'quarter_id', 'date'])
+        else:
+            id = q[-1]['id']
+        return id
 
-    def addshortusage(self, project, folder, username, size, inodes, scandate):
+    def addprojectusage(self, project, system, queue, date, cputime, walltime, su):
+        """
+        Add a project usage entry by system and queue
+        """
         project_id = self.addproject(project)
-        user_id = self.adduser(username)
-        data = dict(project=project_id, user=user_id, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
-        return self.db['ShortUsage'].upsert(data, ['scandate', 'project', 'folder', 'user'])
+        systemqueue_id = self.addsystemqueue(system, queue)
+        data = dict(project_id=project_id,
+                    systemqueue_id=systemqueue_id,
+                    date=date,
+                    usage_cpu=float(cputime),
+                    usage_wall=float(walltime),
+                    usage_su=float(su))
+        return self.db['ProjectUsage'].upsert(data, ['project_id', 'systemqueue_id', 'date'])
 
-    def addgdatausage(self, project, storagepoint, folder, username, size, inodes, scandate):
+    def addprojectstorage(self, project, system, storagepoint, date, grant, igrant):
+        """
+        Add a project storage entry by system and storage point
+        """
         project_id = self.addproject(project)
-        user_id = self.adduser(username)
-        data = dict(project=project_id, user=user_id, storagepoint=storagepoint, folder=folder, scandate=scandate, inodes=float(inodes), size=float(size))
-        return self.db['GdataUsage'].upsert(data, ['scandate', 'storagepoint', 'project', 'folder', 'user'])
+        system_id = self.addsystem(system)
+        storagepoint_id = self.addstoragepoint(system, storagepoint)
+        data = dict(project=project_id,
+                    system_id=system_id,
+                    storagepoint_id=storagepoint_id,
+                    date=date,
+                    grant=float(grant),
+                    igrant=float(igrant))
+        return self.db['ProjectStorage'].upsert(data, ['project_id', 'system_id', 'storagepoint_id', 'date'])
+
+    def adduserusage(self, project, user, date, usecpu, usewall, usesu, efficiency):
+        """
+        Add user su usage record by project
+        """
+        project_id = self.addproject(project)
+        user_id = self.adduser(user)
+        data = dict(project_id=project_id, 
+                    user_id=user_id, 
+                    date=date, 
+                    usage_cpu=float(usecpu), 
+                    usage_wall=float(usewall), 
+                    usage_su=float(usesu),
+                    efficiency=float(efficiency))
+        return self.db['UserUsage'].upsert(data, ['project_id', 'user_id', 'date'])
+
+    def adduserstorage(self, project, user, system, storagepoint, scandate, folder, size, inodes):
+        """
+        Add user storage usage record by project and storage point
+        """
+        project_id = self.addproject(project)
+        user_id = self.adduser(user)
+        storagepoint_id = self.addstoragepoint(system, storagepoint)
+        data = dict(project_id=project_id, 
+                    user_id=user_id, 
+                    storagepoint_id=storagepoint_id,
+                    folder=folder, 
+                    scandate=scandate, 
+                    inodes=float(inodes), 
+                    size=float(size))
+        return self.db['UserStorage'].upsert(data, ['project_id', 'user_id', 'storagepoint_id', 'folder', 'scandate'])
 
     def getstartend(self, year, quarter, asdate=False):
         q = self.db['Quarter'].find_one(year=year, quarter=quarter)
