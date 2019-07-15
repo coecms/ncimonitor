@@ -40,6 +40,10 @@ def parse_file_report(filename, verbose, db=None, dburl=None):
     # Filename contains storage point information
     storagepoint = filename.split('.')[2]
 
+    # Little hack so we get the correct gdata mount point
+    if storagepoint == 'gdata1':
+        storagepoint = 'gdata1a'
+
     # Hard code the system based on storagepoint as this information
     # does not exist in the dumpfile
     if storagepoint.startswith('gdata'):
@@ -63,16 +67,8 @@ def parse_file_report(filename, verbose, db=None, dburl=None):
 
             if line.startswith("Usage details for project"):
                 project = line.split()[4].strip(':')
-                if db is None:
-                    if not project in databases:
-                        dburl = 'sqlite:///'+os.path.join(dbfileprefix,"usage_{}_{}.db".format(project,date.year))
-                    print('DB URL:',dburl)
-                    databases[project] = ProjectDataset(project,dburl)
-                    db = databases[project]
-
                 # Gobble the three header lines
                 line = f.readline(); line = f.readline(); line = f.readline()
-
                 parsing_usage = True
                 continue
 
@@ -101,8 +97,8 @@ def main(args):
         except:
             raise
         else:
-            pass
-            archive(f)
+            if not args.noarchive:
+                archive(f)
 
 def parse_args(args):
     """
@@ -112,6 +108,7 @@ def parse_args(args):
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
     parser.add_argument("-db","--dburl", help="Database file url", default=None)
+    parser.add_argument("-n","--noarchive", help="Database file url", action='store_true')
     parser.add_argument("inputs", help="dumpfiles", nargs='+')
 
     return parser.parse_args()

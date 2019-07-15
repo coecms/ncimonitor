@@ -105,10 +105,10 @@ class ProjectDataset(object):
         Return a unique id
         """
         system_id = self.addsystem(system)
-        q = self.db['StoragePoints'].find_one(system=system_id, storagepoint=storagepoint)
+        q = self.db['StoragePoints'].find_one(system_id=system_id, storagepoint=storagepoint)
         if q is None:
-            data = dict(system=system_id, storagepoint=storagepoint)
-            id = self.db['StoragePoints'].insert(data, ['system', 'storagepoint'])
+            data = dict(system_id=system_id, storagepoint=storagepoint)
+            id = self.db['StoragePoints'].insert(data, ['system_id', 'storagepoint'])
         else:
             id = q['id']
         return id
@@ -170,7 +170,7 @@ class ProjectDataset(object):
             id = q[-1]['id']
         return id
 
-    def addstoragegrant(self, project, system, storagepoint, scheme, year, quarter, date, granttype, grant):
+    def addstoragegrant(self, project, system, storagepoint, scheme, year, quarter, date, storagetype, grant):
         """
         Grant is from a scheme for each project. It is per system and quarter,
         but allow (and track) changes to the grant by allowing more than one
@@ -188,15 +188,18 @@ class ProjectDataset(object):
                     quarter_id=quarter_id)
         q = list(self.db['StorageGrants'].find(**data))
         # Only update if there is a change to grant or no grant already defined
-        if not q or q[-1][granttype] != grant:
+        if not q or storagetype not in q[-1] or q[-1][storagetype] != grant:
             data = dict(project_id=project_id, 
                         system_id=system_id, 
                         storagepoint_id=storagepoint_id, 
                         scheme_id=scheme_id, 
                         quarter_id=quarter_id, 
-                        date=date, 
-                        granttype=grant)
-            id = self.db['StorageGrants'].insert(data, ['project_id', 'system_id', 'storagepoint_id', 'scheme_id', 'quarter_id', 'date'])
+                        date=date)
+            # Have to use key value pair as storagetype is a variable
+            data.update({ storagetype: grant })
+            # Need an upsert here as the same row will get update for capacity
+            # and inodes separately
+            id = self.db['StorageGrants'].upsert(data, ['project_id', 'system_id', 'storagepoint_id', 'scheme_id', 'quarter_id', 'date'])
         else:
             id = q[-1]['id']
         return id

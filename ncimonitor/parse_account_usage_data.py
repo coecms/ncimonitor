@@ -135,10 +135,14 @@ def parse_account_dump_file(filename, verbose, db=None, dburl=None):
                         (scheme_granttype,grant,used,available,max_used,ave_used,
                         price,credit,storage_cost,storage_balance) = line.split() 
                         (scheme, granttype) = scheme_granttype.rsplit('-',1)
+                        if storagetype == 'inodes':
+                            parsed_value = parse_size(grant+grant_units,b=1000,u='')
+                        if storagetype == 'capacity':
+                            parsed_value = round(parse_size(grant+grant_units),1)
                         if verbose: print('Add project storage grant',project, system, storagepoint, scheme, 
-                                           year, quarter, date, granttype, parse_size(grant+grant_units))
+                                           year, quarter, date, storagetype, parsed_value)
                         db.addstoragegrant(project, system, storagepoint, scheme, year, quarter, 
-                                           date, granttype, parse_size(grant+grant_units))
+                                           date, storagetype, parsed_value)
                     except:
                         resources_read =+ 1
                         if resources_read == 2:
@@ -183,8 +187,8 @@ def main(args):
         except:
             raise
         else:
-            pass
-            # archive(f)
+            if not args.noarchive:
+                archive(f)
 
 def parse_args(args):
     """
@@ -194,6 +198,7 @@ def parse_args(args):
     parser.add_argument("-d","--directory", help="Specify directory to find dump files", default=".")
     parser.add_argument("-v","--verbose", help="Verbose output", action='store_true')
     parser.add_argument("-db","--dburl", help="Database file url", default=None)
+    parser.add_argument("-n","--noarchive", help="Database file url", action='store_true')
     parser.add_argument("inputs", help="dumpfiles", nargs='+')
 
     return parser.parse_args()
