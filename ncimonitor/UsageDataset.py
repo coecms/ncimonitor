@@ -20,9 +20,11 @@ limitations under the License.
 
 from __future__ import print_function
 
-from dataset import connect
 import datetime
+import math
 from pwd import getpwnam
+
+from dataset import connect
 import pandas as pd
 
 class NotInDatabase(Exception):
@@ -188,7 +190,10 @@ class ProjectDataset(object):
                     quarter_id=quarter_id)
         q = list(self.db['StorageGrants'].find(**data))
         # Only update if there is a change to grant or no grant already defined
-        if not q or storagetype not in q[-1] or q[-1][storagetype] != grant:
+        if ( not q 
+            or storagetype not in q[-1]
+            or q[-1][storagetype] is None
+            or not math.isclose(q[-1][storagetype], grant, abs_tol=1024) ):
             data = dict(project_id=project_id, 
                         system_id=system_id, 
                         storagepoint_id=storagepoint_id, 

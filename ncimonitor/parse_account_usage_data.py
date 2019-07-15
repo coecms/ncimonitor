@@ -138,7 +138,7 @@ def parse_account_dump_file(filename, verbose, db=None, dburl=None):
                         if storagetype == 'inodes':
                             parsed_value = parse_size(grant+grant_units,b=1000,u='')
                         if storagetype == 'capacity':
-                            parsed_value = round(parse_size(grant+grant_units),1)
+                            parsed_value = round(parse_size(grant+grant_units),0)
                         if verbose: print('Add project storage grant',project, system, storagepoint, scheme, 
                                            year, quarter, date, storagetype, parsed_value)
                         db.addstoragegrant(project, system, storagepoint, scheme, year, quarter, 
