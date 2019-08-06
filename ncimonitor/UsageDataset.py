@@ -49,10 +49,15 @@ class ProjectDataset(object):
         if q is None:
             if fullname is None:
                 try:
-                    fullname = getpwnam(user).pw_gecos
+                    passwd = getpwnam(user).pw_gecos
+                    fullname = passwd.pw_gecos
+                    uid = passwd.pw_uid
+                    gid = passwd.pw_gid
                 except KeyError:
                     fullname = user
-            data = dict(user=user, fullname=fullname)
+                    uid = -1
+                    gid = -1
+            data = dict(user=user, uid=uid, gid=gid, fullname=fullname)
             id = self.db['Users'].insert(data, list(data.keys()))
         else:
             id = q['id']
