@@ -47,6 +47,7 @@ class ProjectDataset(object):
         """
         q = self.db['Users'].find_one(user=user)
         if q is None:
+            uid = -1; gid = -1
             if fullname is None:
                 try:
                     passwd = getpwnam(user).pw_gecos
