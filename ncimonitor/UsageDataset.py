@@ -173,7 +173,7 @@ class ProjectDataset(object):
                         quarter_id=quarter_id, 
                         date=date, 
                         allocation=allocation)
-            id = self.db['UsageGrants'].insert(data, ['project_id', 'system_id', 'scheme_id', 'quarter_id', 'date'])
+            id = self.db['UsageGrants'].upsert(data, ['project_id', 'system_id', 'scheme_id', 'quarter_id', 'date'])
         else:
             id = q[-1]['id']
         return id
@@ -209,8 +209,10 @@ class ProjectDataset(object):
             # Have to use key value pair as storagetype is a variable
             data.update({ storagetype: grant })
             # Need an upsert here as the same row will get update for capacity
-            # and inodes separately
-            id = self.db['StorageGrants'].upsert(data, ['project_id', 'system_id', 'storagepoint_id', 'scheme_id', 'quarter_id', 'date'])
+            # and inodes separately. Consequently don't include storagetype in
+            # the index
+            id = self.db['StorageGrants'].upsert(data, ['project_id', 'system_id', 'storagepoint_id', 
+                                                        'scheme_id', 'quarter_id', 'date'])
         else:
             id = q[-1]['id']
         return id
@@ -276,7 +278,7 @@ class ProjectDataset(object):
         return self.db['UserStorage'].upsert(data, ['project_id', 'user_id', 'storagepoint_id', 'folder', 'scandate'])
 
     def getstartend(self, year, quarter, asdate=False):
-        q = self.db['Quarter'].find_one(year=year, quarter=quarter)
+        q = self.db['Quarters'].find_one(year=year, quarter=quarter)
         if q is None:
             raise NotInDatabase('No entries in database for {}.{}'.format(year,quarter))
         if asdate:
@@ -284,12 +286,19 @@ class ProjectDataset(object):
         else:
             return q['start_date'],q['end_date']
 
-    def getgrant(self, year, quarter):
+    def getusagegrant(self, project, system, scheme, year, quarter):
+        project_id = self.addproject(project)
+        system_id = self.addsystem(system)
+        scheme_id = self.addscheme(scheme)
         quarter_id = self.addquarter(year, quarter)
-        q = self.db['Grant'].find_one(quarter=quarter_id)
+        data = dict(project_id=project_id, 
+                    system_id=system_id, 
+                    scheme_id=scheme_id, 
+                    quarter_id=quarter_id)
+        q = list(self.db['UsageGrants'].find(**data))[-1]
         if q is None:
             return None
-        return float(q['total_grant'])
+        return float(q['allocation'])
 
     def getprojectsu(self, project, year, quarter):
         project_id = self.addproject(project)
@@ -308,16 +317,16 @@ class ProjectDataset(object):
             usage.append(record["totsu"]/1000.)
         return dates, usage
 
-    def getusersu(self, project, year, quarter, username, scale=None):
+    def getusersu(self, project, year, quarter, user, scale=None):
         project_id = self.addproject(project)
         startdate, enddate = self.getstartend(year, quarter)
-        user_id = self.adduser(username)
+        user_id = self.adduser(user)
         if user is None:
-            raise Exception('User {} does not exist in project {}'.format(username, project))
+            raise Exception('User {} does not exist in project {}'.format(user, project))
         qstring = """SELECT date, SUM(usage_su) AS totsu FROM UserUsage 
-                     WHERE project={project} AND 
+                     WHERE project_id={project} AND 
                      date between '{start}' AND '{end}' AND 
-                     user={userid} GROUP BY date ORDER BY date
+                     user_id={user} GROUP BY date ORDER BY date
                      """.format(project=project_id, start=startdate, end=enddate, user=user_id)
         q = self.db.query(qstring)
         if q is None:
@@ -329,10 +338,10 @@ class ProjectDataset(object):
             usage.append(record["totsu"]*scale)
         return dates, usage
 
-    def getusershort(self, year, quarter, username):
+    def getusershort(self, year, quarter, user):
         project_id = self.addproject(project)
         startdate, enddate = self.getstartend(year, quarter)
-        user_id = self.adduser(username)
+        user_id = self.adduser(use)
         qstring = """SELECT scandate, SUM(size) AS totsize FROM ShortUsage 
                      WHERE project={project} AND 
                      scandate between '{start}' AND '{end}' AND 
@@ -352,9 +361,9 @@ class ProjectDataset(object):
         startdate, enddate = self.getstartend(year, quarter)
 
         if namefield == 'user+name':
-            name_sql = 'printf("%s (%s)", Users.fullname, Users.username)'
+            name_sql = 'printf("%s (%s)", Users.fullname, Users.user)'
         elif namefield == 'user':
-            name_sql = 'Users.username'
+            name_sql = 'Users.user'
         else:
             raise ValueError('Incorrect value of namefield: {} Valid values are "user+name" or "user"'.format(namefield))
 
@@ -363,7 +372,7 @@ class ProjectDataset(object):
 
         qstring = """SELECT {namefield} as Name, date as Date, SUM({datafield}) AS totsu
         FROM UserUsage
-        LEFT JOIN Users ON UserUsage.user = Users.id 
+        LEFT JOIN Users ON UserUsage.user_id = Users.id 
         WHERE date between \'{start}\' AND \'{end}\' 
         GROUP BY Name, Date 
         ORDER BY Date"""
@@ -389,21 +398,16 @@ class ProjectDataset(object):
         return df
 
 
-    def getstorage(self, year, quarter, storagept='short', datafield='size', namefield='user+name'):
+    def getstorage(self, project, year, quarter, storagept='short', datafield='size', namefield='user+name'):
 
         startdate, enddate = self.getstartend(year, quarter)
 
-        if storagept == 'short':
-            table = 'ShortUsage'
-        elif storagept == 'gdata':
-            table = 'GdataUsage'
-        else:
-            raise ValueError('Incorrect value of storagept: {} Valid values are "short" or "gdata"'.format(storagept))
+        table = 'UserStorage'
 
         if namefield == 'user+name':
-            name_sql = 'printf("%s (%s)", Users.fullname, Users.username)'
+            name_sql = 'printf("%s (%s)", Users.fullname, Users.user)'
         elif namefield == 'user':
-            name_sql = 'Users.username'
+            name_sql = 'Users.user'
         else:
             raise ValueError('Incorrect value of namefield: {} Valid values are "user+name" or "user"'.format(namefield))
 
@@ -412,7 +416,7 @@ class ProjectDataset(object):
 
         qstring = """SELECT {namefield} as Name, scandate as Date, SUM({datafield}) AS totsize 
         FROM {table}
-        LEFT JOIN Users ON {table}.user = Users.id
+        LEFT JOIN Users ON {table}.user_id = Users.id
         WHERE scandate between \'{start}\' AND \'{end}\'
         GROUP BY Name, Date
         ORDER BY Date"""
@@ -437,9 +441,9 @@ class ProjectDataset(object):
 
         return df
 
-    def getusergdata(self, year, quarter, username):
+    def getusergdata(self, year, quarter, user):
         startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['Users'].find_one(username=username)
+        user = self.db['Users'].find_one(user=user)
         qstring = "SELECT scandate, SUM(size) AS totsize FROM GdataUsage WHERE scandate between '{}' AND '{}' AND user={} GROUP BY scandate ORDER BY scandate".format(startdate,enddate,user['id'])
         q = self.db.query(qstring)
         if q is None:
@@ -469,31 +473,32 @@ class ProjectDataset(object):
             return None
         users = []
         for record in q:
-            users.append(self.db['Users'].find_one(id=record["user"])["username"])
+            users.append(self.db['Users'].find_one(id=record["user"])["user"])
         return users
 
     def getsuusers(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT user, MAX(usage_su) as maxsu FROM UserUsage WHERE date between '{}' AND '{}' GROUP BY user ORDER BY maxsu desc".format(startdate,enddate)
+        qstring = "SELECT user_id, MAX(usage_su) as maxsu FROM UserUsage WHERE date between '{}' AND '{}' GROUP BY user_id ORDER BY maxsu desc".format(startdate,enddate)
         q = self.db.query(qstring)
         if q is None:
             return None
         users = []
         for record in q:
-            users.append(self.db['Users'].find_one(id=record["user"])["username"])
+            users.append(self.db['Users'].find_one(id=record["user_id"])["user"])
         return users
 
-    def getuser(self, username=None):
-        return self.db['Users'].find_one(username=username)
+    def getuser(self, user=None):
+        return self.db['Users'].find_one(user=user)
 
     def getusers(self):
-        qstring = "SELECT username FROM Users"
+        qstring = "SELECT user FROM Users"
         q = self.db.query(qstring)
         for user in q:
-            yield user['username']
+            yield user['user']
 
     def getqueue(self, system, queue):
-        return self.db['SystemQueue'].find_one(system=system, queue=queue)
+        system_id = self.addsystem(system)
+        return self.db['SystemQueues'].find_one(system_id=system_id, queue=queue)
 
     def date2date(self, datestring):
 
@@ -502,8 +507,9 @@ class ProjectDataset(object):
         else:
             return datetime.datetime.strptime(datestring, "%Y-%m-%d").date()
 
-    def getstoragepoints(self, system, year, quarter):
-        qstring = "SELECT storagepoint FROM SystemStorage WHERE system is '{}' AND year is '{}' AND quarter is '{}' GROUP BY storagepoint".format(system,year,quarter)
+    def getstoragepoints(self, system):
+        system_id = self.addsystem(system)
+        qstring = "SELECT DISTINCT storagepoint FROM StoragePoints WHERE system_id is '{}'".format(system_id)
         q = self.db.query(qstring)
         if q is None:
             return None
@@ -517,6 +523,23 @@ class ProjectDataset(object):
         if q is None:
             return None
         return q["storagepoint"]
+
+    def getstoragegrant(self, project, systemname, storagepoint, scheme, year, quarter):
+
+        project_id = self.addproject(project)
+        system_id = self.addsystem(systemname)
+        storagepoint_id = self.addstoragepoint(systemname, storagepoint)
+        scheme_id = self.addscheme(scheme)
+        quarter_id = self.addquarter(year, quarter)
+        data = dict(project_id=project_id, 
+                    system_id=system_id, 
+                    storagepoint_id=storagepoint_id, 
+                    scheme_id=scheme_id, 
+                    quarter_id=quarter_id)
+        q = self.db['StorageGrants'].find_one(**data)
+        if q is None:
+            return (None,None)
+        return float(q['capacity']),float(q['inodes'])
 
     def getsystemstorage(self, systemname, storagepoint, year, quarter):
         if storagepoint == 'gdata':
@@ -535,7 +558,7 @@ class ProjectDataset(object):
         Return the top ``count`` users according to ``measure`` (either 'size'
         or 'inodes') on ``storagepoint`` for ``year`` and ``quarter``
 
-        Returns pandas dataframe (fullname (username), usage)
+        Returns pandas dataframe (fullname (user), usage)
         """
 
         if storagepoint not in ['short', 'gdata']:
