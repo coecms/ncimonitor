@@ -50,7 +50,7 @@ class ProjectDataset(object):
             uid = -1; gid = -1
             if fullname is None:
                 try:
-                    passwd = getpwnam(user).pw_gecos
+                    passwd = getpwnam(user)
                     fullname = passwd.pw_gecos
                     uid = passwd.pw_uid
                     gid = passwd.pw_gid
@@ -59,7 +59,7 @@ class ProjectDataset(object):
                     uid = -1
                     gid = -1
             data = dict(user=user, uid=uid, gid=gid, fullname=fullname)
-            id = self.db['Users'].insert(data, list(data.keys()))
+            id = self.db['Users'].upsert(data, list(data.keys()))
         else:
             id = q['id']
         return id
@@ -440,30 +440,6 @@ class ProjectDataset(object):
         df = df.reindex(newidx, method='backfill')
 
         return df
-
-    def getusergdata(self, year, quarter, user):
-        startdate, enddate = self.getstartend(year, quarter)
-        user = self.db['Users'].find_one(user=user)
-        qstring = "SELECT scandate, SUM(size) AS totsize FROM GdataUsage WHERE scandate between '{}' AND '{}' AND user={} GROUP BY scandate ORDER BY scandate".format(startdate,enddate,user['id'])
-        q = self.db.query(qstring)
-        if q is None:
-            return None
-        dates = []; usage = []
-        for record in q:
-            dates.append(self.date2date(record["scandate"]))
-            usage.append(record["totsize"])
-        return dates, usage
-
-    def getshortdates(self, year, quarter):
-        startdate, enddate = self.getstartend(year, quarter)
-        qstring = "SELECT scandate FROM ShortUsage WHERE scandate between '{}' AND '{}' GROUP BY scandate ORDER BY scandate".format(startdate,enddate)
-        q = self.db.query(qstring)
-        if q is None:
-            return None
-        dates = []
-        for record in q:
-            dates.append(self.date2date(record["scandate"]))
-        return dates
 
     def getshortusers(self, year, quarter):
         startdate, enddate = self.getstartend(year, quarter)
