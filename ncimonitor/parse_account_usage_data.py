@@ -56,7 +56,7 @@ def parse_account_dump_file(filename, verbose, db=None, dburl=None):
                 words = line.split()
                 project = words[2].split('=')[1]
                 year, quarter = words[4].split('=')[1].split('.')
-                print(year, quarter)
+                print(project, year, quarter)
                 startdate, enddate = words[5].split('-')
                 startdate = datetime.datetime.strptime(startdate.strip('('),"%d/%m/%Y").date()
                 enddate = datetime.datetime.strptime(enddate.strip(')'),"%d/%m/%Y").date()
